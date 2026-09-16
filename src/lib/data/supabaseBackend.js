@@ -1,85 +1,191 @@
-// Real backend, wired up in M1 (see README roadmap). Every export here must
-// match the function signatures in localBackend.js so index.js can swap
-// between them with no change to feature code. Implementations will use
-// supabaseClient.js once the schema/RLS from M1 lands.
+// Real backend. Every export here matches the function signatures in
+// localBackend.js so index.js can swap between them with no change to
+// feature code. Reads go straight through RLS-gated SELECTs; every
+// mutation besides a plain insert calls one of the SECURITY DEFINER
+// Postgres functions in supabase/migrations/0003_functions.sql (atomic
+// portion math, admin checks) — see that file for why.
+import { supabase } from '../supabaseClient.js'
 
-function notImplemented(name) {
-  throw new Error(`supabaseBackend.${name} is not implemented yet — see README M1`)
+const PHOTO_BUCKET = 'batch-photos'
+const SIGNED_URL_TTL_SECONDS = 60 * 60
+
+function unwrap({ data, error }) {
+  if (error) throw new Error(error.message)
+  return data
 }
 
-export function listUsers() {
-  return notImplemented('listUsers')
+// --- Session ---
+
+export async function listUsers() {
+  return unwrap(await supabase.from('users').select('*'))
 }
 
-export function getCurrentUser() {
-  return notImplemented('getCurrentUser')
+export async function getCurrentUser() {
+  return unwrap(await supabase.rpc('current_app_user'))
 }
 
-export function listChildren() {
-  return notImplemented('listChildren')
+// setCurrentUser is intentionally not exported — auth is real here
+// (supabase.auth.signIn*), not a dev dropdown. See UserSwitcher.jsx,
+// which renders nothing when this is undefined.
+//
+// getSession/signIn/signOut/onAuthStateChange are the mirror image: only
+// meaningful when there's a real auth backend, so localBackend.js doesn't
+// export them. AuthGate.jsx checks for getSession to decide whether an
+// auth wall applies at all.
+
+export async function getSession() {
+  const { data } = await supabase.auth.getSession()
+  return data.session
 }
 
-export function listRecipes() {
-  return notImplemented('listRecipes')
+export async function signIn({ email, password }) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw new Error(error.message)
 }
 
-export function getRecipe() {
-  return notImplemented('getRecipe')
+export async function signOut() {
+  await supabase.auth.signOut()
 }
 
-export function createRecipe() {
-  return notImplemented('createRecipe')
+export function onAuthStateChange(callback) {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => callback(session))
+  return () => subscription.unsubscribe()
 }
 
-export function updateRecipe() {
-  return notImplemented('updateRecipe')
+// --- Children ---
+
+export async function listChildren() {
+  return unwrap(await supabase.from('children').select('*'))
 }
 
-export function listBatches() {
-  return notImplemented('listBatches')
+// --- Recipes ---
+
+export async function listRecipes() {
+  return unwrap(await supabase.from('recipes').select('*').order('created_at', { ascending: true }))
 }
 
-export function getBatch() {
-  return notImplemented('getBatch')
+export async function getRecipe(recipeId) {
+  return unwrap(await supabase.from('recipes').select('*').eq('id', recipeId).single())
 }
 
-export function createBatch() {
-  return notImplemented('createBatch')
+export async function createRecipe({ title, format, ingredients, instructions, notes }) {
+  return unwrap(
+    await supabase
+      .from('recipes')
+      .insert({ title, format: format ?? 'structured', ingredients, instructions, notes: notes ?? null })
+      .select()
+      .single()
+  )
 }
 
-export function voidBatch() {
-  return notImplemented('voidBatch')
+export async function updateRecipe(recipeId, patch) {
+  return unwrap(await supabase.from('recipes').update(patch).eq('id', recipeId).select().single())
 }
 
-export function hardDeleteBatch() {
-  return notImplemented('hardDeleteBatch')
+// --- Batches ---
+
+export async function listBatches({ childId, recipeId, includeVoided = false } = {}) {
+  let query = supabase.from('batches').select('*').is('deleted_at', null)
+  if (!includeVoided) query = query.is('voided_at', null)
+  if (childId) query = query.eq('child_id', childId)
+  if (recipeId) query = query.eq('recipe_id', recipeId)
+  return unwrap(await query)
 }
 
-export function listServingEvents() {
-  return notImplemented('listServingEvents')
+export async function getBatch(batchId) {
+  return unwrap(await supabase.from('batches').select('*').eq('id', batchId).single())
 }
 
-export function serveMeal() {
-  return notImplemented('serveMeal')
+export async function createBatch({ recipeId, childId, portionsTotal, portionSize, photoBlob }) {
+  const batchId = crypto.randomUUID()
+  const photoPath = `batches/${batchId}.jpg`
+
+  if (photoBlob) {
+    const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(photoPath, photoBlob, {
+      contentType: photoBlob.type || 'image/jpeg',
+    })
+    if (error) throw new Error(error.message)
+  }
+
+  return unwrap(
+    await supabase
+      .from('batches')
+      .insert({
+        id: batchId,
+        recipe_id: recipeId,
+        child_id: childId,
+        portions_total: portionsTotal,
+        portions_remaining: portionsTotal,
+        portion_size: portionSize,
+        photo_path: photoBlob ? photoPath : null,
+      })
+      .select()
+      .single()
+  )
 }
 
-export function voidServingEvent() {
-  return notImplemented('voidServingEvent')
+export async function voidBatch(batchId) {
+  return unwrap(await supabase.rpc('void_batch', { p_batch_id: batchId }))
 }
 
-export function hardDeleteServingEvent() {
-  return notImplemented('hardDeleteServingEvent')
+export async function hardDeleteBatch(batchId) {
+  const batch = await getBatch(batchId)
+  const result = unwrap(await supabase.rpc('hard_delete_batch', { p_batch_id: batchId }))
+  if (batch.photo_path) await supabase.storage.from(PHOTO_BUCKET).remove([batch.photo_path])
+  return result
 }
 
-export function getSettings() {
-  return notImplemented('getSettings')
+// --- Serving events ---
+
+export async function listServingEvents({ batchId, includeVoided = false } = {}) {
+  let query = supabase
+    .from('serving_events')
+    .select('*')
+    .is('deleted_at', null)
+    .order('served_at', { ascending: false })
+  if (!includeVoided) query = query.is('voided_at', null)
+  if (batchId) query = query.eq('batch_id', batchId)
+  return unwrap(await query)
 }
 
-export function updateSettings() {
-  return notImplemented('updateSettings')
+export async function serveMeal({ batchId, portionsUsed, satisfactionRating, notes }) {
+  return unwrap(
+    await supabase.rpc('serve_meal', {
+      p_batch_id: batchId,
+      p_portions_used: portionsUsed,
+      p_satisfaction_rating: satisfactionRating,
+      p_notes: notes ?? null,
+    })
+  )
 }
 
-export function getPhotoUrl() {
-  // Will become: supabase.storage.from('batch-photos').createSignedUrl(photoPath, ttl)
-  return notImplemented('getPhotoUrl')
+export async function voidServingEvent(eventId) {
+  return unwrap(await supabase.rpc('void_serving_event', { p_event_id: eventId }))
+}
+
+export async function hardDeleteServingEvent(eventId) {
+  return unwrap(await supabase.rpc('hard_delete_serving_event', { p_event_id: eventId }))
+}
+
+// --- App settings ---
+
+export async function getSettings() {
+  return unwrap(await supabase.from('app_settings').select('*').eq('id', true).single())
+}
+
+export async function updateSettings(patch) {
+  return unwrap(await supabase.rpc('update_settings', { p_low_stock_threshold: patch.low_stock_threshold }))
+}
+
+// --- Photos ---
+
+export async function getPhotoUrl(photoPath) {
+  if (!photoPath) return null
+  const { data, error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .createSignedUrl(photoPath, SIGNED_URL_TTL_SECONDS)
+  if (error) return null
+  return data.signedUrl
 }

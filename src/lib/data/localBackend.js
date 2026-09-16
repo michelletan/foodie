@@ -8,9 +8,9 @@ const DB_KEY = 'foodie_db_v1'
 const CURRENT_USER_KEY = 'foodie_current_user_v1'
 
 const SEED_USERS = [
-  { id: 'u-parent1', name: 'Parent 1', role: 'admin', persona: 'parent', telegram_chat_id: null },
-  { id: 'u-parent2', name: 'Parent 2', role: 'user', persona: 'parent', telegram_chat_id: null },
-  { id: 'u-helper', name: 'Helper', role: 'user', persona: 'helper', telegram_chat_id: null },
+  { id: 'u-parent1', name: 'Parent 1', role: 'admin', telegram_chat_id: null },
+  { id: 'u-parent2', name: 'Parent 2', role: 'user', telegram_chat_id: null },
+  { id: 'u-helper', name: 'Helper', role: 'user', telegram_chat_id: null },
 ]
 
 const SEED_CHILDREN = [{ id: 'c-hazel', name: 'Hazel', created_at: new Date().toISOString() }]

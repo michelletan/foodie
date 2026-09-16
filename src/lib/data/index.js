@@ -31,3 +31,12 @@ export const {
 // Local-dev-only: lets a "logged in as" switcher work when there's no real
 // auth backend. Undefined when running against Supabase.
 export const setCurrentUser = backend.setCurrentUser
+
+// The mirror image: only meaningful with a real auth backend, so
+// localBackend.js doesn't export these. Undefined when running locally —
+// AuthGate.jsx checks for getSession to decide whether an auth wall
+// applies at all.
+export const getSession = backend.getSession
+export const signIn = backend.signIn
+export const signOut = backend.signOut
+export const onAuthStateChange = backend.onAuthStateChange

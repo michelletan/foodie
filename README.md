@@ -30,6 +30,24 @@ Run one from the browser devtools console while `npm run dev` is running — eac
 await importPdfRecipes()
 ```
 
+## Supabase setup (M1)
+
+The migrations and the real backend ([`supabaseBackend.js`](src/lib/data/supabaseBackend.js)) are written — this is what's left to actually turn it on, all done in the [Supabase dashboard](https://supabase.com/dashboard):
+
+1. **Create the project** (New project). Save the database password somewhere safe (a password manager) — Supabase won't show it again.
+2. **Run the migrations**, in order, via SQL Editor → paste each file's contents → Run: [`0001_schema.sql`](supabase/migrations/0001_schema.sql), [`0002_rls.sql`](supabase/migrations/0002_rls.sql), [`0003_functions.sql`](supabase/migrations/0003_functions.sql), [`0004_storage.sql`](supabase/migrations/0004_storage.sql), [`0005_seed.sql`](supabase/migrations/0005_seed.sql). (Or via the Supabase CLI — `supabase link` then `supabase db push` — if you'd rather.)
+3. **Create the 3 accounts**: Authentication → Users → Add user, one each for the 2 parents + helper (email/password is simplest). Copy each one's UUID.
+4. **Link those accounts to app roles** — SQL Editor, using the 3 real UUIDs from step 3:
+   ```sql
+   insert into public.users (id, name, role) values
+     ('<uuid>', 'Parent 1', 'admin'),
+     ('<uuid>', 'Parent 2', 'user'),
+     ('<uuid>', 'Helper', 'user');
+   ```
+5. **Get the API URL + anon key**: Project Settings → API. Put them in `.env.local` (copy from `.env.example`) along with `VITE_DATA_BACKEND=supabase`.
+
+`src/routes/Login.jsx` handles sign-in (email/password); there's no signup form, since accounts are only ever created manually as above.
+
 ## Testing
 
 ```bash
@@ -49,17 +67,18 @@ Not set up yet — deliberately deferred until the app is further along. When it
 ### M0 — Project scaffolding
 - [x] Init frontend: React + Vite
 - [x] Data layer abstraction (`src/lib/data/`) with a Supabase-free local backend, so M2-M6 can be built before M1 lands
-- [ ] Supabase project (free tier), local `supabase` CLI + migrations folder (folder created, empty)
+- [ ] Supabase project (free tier) — account created; project itself not yet (see "Supabase setup" below)
 - [ ] GitHub Pages deploy pipeline (deliberately deferred until the app is ready — see Deploy below)
 - [x] Env/config for Supabase URL+anon key in a static-safe way
 
 ### M1 — Schema & auth
-- [ ] Migrations for `users`, `children`, `recipes`, `batches`, `serving_events`, `app_settings`
-- [ ] RLS policies: all 3 users equal read/write on core tables; `app_settings` write gated to `role = admin`; hard delete gated to admin
-- [ ] Postgres function for atomic portion decrement/restore (serve + undo)
-- [ ] Supabase Auth: 3 manually-created accounts, email/password or magic link, no signup UI
-- [ ] Seed script: 3 users (2 parent personas, 1 helper), 1 child (Hazel)
-- [ ] Implement `src/lib/data/supabaseBackend.js` against the schema above (same function signatures as `localBackend.js`)
+- [x] Migrations for `users`, `children`, `recipes`, `batches`, `serving_events`, `app_settings` — written in `supabase/migrations/`, not yet applied to a live project (see "Supabase setup" above)
+- [x] RLS policies: all 3 users equal read/write on core tables; admin-only mutations (hard delete, settings) have no direct UPDATE policy at all and go through SECURITY DEFINER functions instead, since RLS can't cleanly gate individual columns
+- [x] Postgres functions for atomic portion decrement/restore (`serve_meal`, `void_serving_event`) plus every other admin-gated mutation
+- [ ] Supabase Auth: 3 manually-created accounts — your action in the dashboard, see "Supabase setup" above
+- [x] Seed script: `0005_seed.sql` seeds the 1 child (Hazel); the 3 `public.users` rows need real auth UUIDs from the step above, so that insert is documented but can't be pre-written
+- [x] Implement `src/lib/data/supabaseBackend.js` against the schema above (same function signatures as `localBackend.js`) — untested against a live project so far
+- [x] Login screen ([`Login.jsx`](src/routes/Login.jsx), gated by [`AuthGate.jsx`](src/components/AuthGate.jsx)) — email/password only, no signup form (accounts are created manually, see "Supabase setup" above). `AuthGate` checks for `getSession` to decide whether an auth wall applies at all, so the local dev backend is completely unaffected (verified: no login wall, same as before)
 
 ### M2 — Recipes
 - [x] Recipe list + detail view

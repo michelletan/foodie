@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import SignOutButton from './components/SignOutButton.jsx'
 import UserSwitcher from './components/UserSwitcher.jsx'
 import './App.css'
 
@@ -17,6 +18,7 @@ function App() {
           <NavLink to="/history">History</NavLink>
         </nav>
         <UserSwitcher />
+        <SignOutButton />
       </header>
       <main>
         <Outlet />
