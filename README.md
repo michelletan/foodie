@@ -8,23 +8,32 @@ Shared toddler meal-prep tracker for two parents and a helper. Full spec: see `M
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
 npm run dev
 ```
+
+No Supabase project needed to develop — see "Data layer" below.
+
+## Data layer
+
+Feature code only ever imports from [`src/lib/data/index.js`](src/lib/data/index.js), never from a specific backend. Which backend it loads is picked by `VITE_DATA_BACKEND`:
+
+- **`local`** (default, no env setup required): browser-only mock — records in `localStorage`, photo blobs in IndexedDB, no network. Seeded with the 3 users from the spec and one child (Hazel). "Logged in as" is a plain dropdown (`setCurrentUser`), since there's no real auth backend yet. Good for building/clicking through every flow, but it's single-browser only — it can't test real multi-device sync, RLS, or Realtime.
+- **`supabase`**: the real backend ([`src/lib/data/supabaseBackend.js`](src/lib/data/supabaseBackend.js)), filled in during M1. Requires `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — copy `.env.example` to `.env.local` and set `VITE_DATA_BACKEND=supabase` plus those two vars.
 
 ## Deploy
 
 Pushing to `main` builds and deploys to GitHub Pages via `.github/workflows/deploy.yml`. One-time setup needed in the GitHub repo settings:
 - **Settings → Pages → Source:** GitHub Actions
-- **Settings → Secrets and variables → Actions:** add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+- **Settings → Secrets and variables → Actions:** add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (only needed once M1 switches the deployed build to the `supabase` backend)
 
 ## Roadmap
 
 ### M0 — Project scaffolding
-- [ ] Init frontend: React + Vite
-- [ ] Supabase project (free tier), local `supabase` CLI + migrations folder
-- [ ] GitHub Pages deploy pipeline (GitHub Actions build+deploy on push to main)
-- [ ] Env/config for Supabase URL+anon key in a static-safe way
+- [x] Init frontend: React + Vite
+- [x] Data layer abstraction (`src/lib/data/`) with a Supabase-free local backend, so M2-M6 can be built before M1 lands
+- [ ] Supabase project (free tier), local `supabase` CLI + migrations folder (folder created, empty)
+- [x] GitHub Pages deploy pipeline (GitHub Actions build+deploy on push to main — needs one-time repo settings, see Deploy above)
+- [x] Env/config for Supabase URL+anon key in a static-safe way
 
 ### M1 — Schema & auth
 - [ ] Migrations for `users`, `children`, `recipes`, `batches`, `serving_events`, `app_settings`
@@ -32,6 +41,7 @@ Pushing to `main` builds and deploys to GitHub Pages via `.github/workflows/depl
 - [ ] Postgres function for atomic portion decrement/restore (serve + undo)
 - [ ] Supabase Auth: 3 manually-created accounts, email/password or magic link, no signup UI
 - [ ] Seed script: 3 users (2 parent personas, 1 helper), 1 child (Hazel)
+- [ ] Implement `src/lib/data/supabaseBackend.js` against the schema above (same function signatures as `localBackend.js`)
 
 ### M2 — Recipes
 - [ ] Recipe list + detail view
