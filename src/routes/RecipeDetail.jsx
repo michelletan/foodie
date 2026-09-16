@@ -43,22 +43,28 @@ export default function RecipeDetail() {
         <dd>{new Date(recipe.created_at).toLocaleDateString()}</dd>
       </dl>
 
-      <h3>Ingredients</h3>
-      <ul className="ingredients">
-        {recipe.ingredients.map((ing, i) => (
-          <li key={i}>
-            {ing.quantity} {ing.unit} {ing.name}
-          </li>
-        ))}
-      </ul>
-
-      <h3>Instructions</h3>
-      <p className="instructions">{recipe.instructions}</p>
-
-      {recipe.notes && (
+      {recipe.format === 'freetext' ? (
+        <p className="instructions">{recipe.instructions}</p>
+      ) : (
         <>
-          <h3>Notes</h3>
-          <p className="notes">{recipe.notes}</p>
+          <h3>Ingredients</h3>
+          <ul className="ingredients">
+            {recipe.ingredients.map((ing, i) => (
+              <li key={i}>
+                {ing.quantity} {ing.unit} {ing.name}
+              </li>
+            ))}
+          </ul>
+
+          <h3>Instructions</h3>
+          <p className="instructions">{recipe.instructions}</p>
+
+          {recipe.notes && (
+            <>
+              <h3>Notes</h3>
+              <p className="notes">{recipe.notes}</p>
+            </>
+          )}
         </>
       )}
     </div>

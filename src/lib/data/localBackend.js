@@ -92,12 +92,13 @@ export async function getRecipe(recipeId) {
   return recipe
 }
 
-export async function createRecipe({ title, ingredients, instructions, notes }) {
+export async function createRecipe({ title, format, ingredients, instructions, notes }) {
   const db = loadDb()
   const user = await getCurrentUser()
   const recipe = {
     id: id(),
     title,
+    format: format ?? 'structured',
     ingredients,
     instructions,
     notes: notes ?? null,
