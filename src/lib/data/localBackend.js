@@ -137,7 +137,7 @@ export async function getBatch(batchId) {
   return batch
 }
 
-export async function createBatch({ recipeId, childId, portionsTotal, photoBlob }) {
+export async function createBatch({ recipeId, childId, portionsTotal, portionSize, photoBlob }) {
   const db = loadDb()
   const user = await getCurrentUser()
   const batchId = id()
@@ -152,6 +152,7 @@ export async function createBatch({ recipeId, childId, portionsTotal, photoBlob 
     prepared_by: user.id,
     portions_total: portionsTotal,
     portions_remaining: portionsTotal,
+    portion_size: portionSize,
     photo_path: photoBlob ? photoPath : null,
     prepared_at: now(),
     voided_at: null,

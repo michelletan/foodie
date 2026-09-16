@@ -44,12 +44,12 @@ Pushing to `main` builds and deploys to GitHub Pages via `.github/workflows/depl
 - [ ] Implement `src/lib/data/supabaseBackend.js` against the schema above (same function signatures as `localBackend.js`)
 
 ### M2 — Recipes
-- [ ] Recipe list + detail view
-- [ ] Add/edit recipe form: title, ingredients (name/qty/unit, repeatable rows), instructions, notes
+- [x] Recipe list + detail view
+- [x] Add/edit recipe form: title, ingredients (name/qty/unit, repeatable rows), instructions, notes
 
 ### M3 — Batch logging (helper)
-- [ ] Recipe picker → portions-made input → camera capture → client-side resize/compress (≤1000px, JPEG/WebP ~70-80%) → preview/retake → upload to private Storage bucket → insert `batches` row
-- [ ] Signed-URL fetch for displaying batch photos (never store/display raw public URLs)
+- [x] Recipe picker → portions-made input → camera capture → client-side resize/compress (≤1000px, JPEG/WebP ~70-80%) → preview/retake → save (`batches/new`, `batches/:id`)
+- [x] Photo fetch abstracted behind `getPhotoUrl()` (object URL locally; will be a signed URL once M1's `supabaseBackend.js` lands — never store/display raw public URLs)
 
 ### M4 — Serving flow (helper)
 - [ ] Batch picker → portion stepper → 1-5 rating tap targets → optional note → save
