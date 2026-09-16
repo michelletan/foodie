@@ -1,38 +1,108 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { getBatch, getPhotoUrl, getRecipe, listChildren, listUsers } from '../lib/data/index.js'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  getBatch,
+  getCurrentUser,
+  getPhotoUrl,
+  getRecipe,
+  hardDeleteBatch,
+  hardDeleteServingEvent,
+  listChildren,
+  listServingEvents,
+  listUsers,
+  voidBatch,
+  voidServingEvent,
+} from '../lib/data/index.js'
 
 export default function BatchDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [batch, setBatch] = useState(null)
   const [recipe, setRecipe] = useState(null)
   const [child, setChild] = useState(null)
-  const [preparedBy, setPreparedBy] = useState(null)
+  const [users, setUsers] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
   const [photoUrl, setPhotoUrl] = useState(null)
+  const [servingEvents, setServingEvents] = useState([])
   const [error, setError] = useState(null)
+
+  async function refresh() {
+    const [batch, users, currentUser, events] = await Promise.all([
+      getBatch(id),
+      listUsers(),
+      getCurrentUser(),
+      listServingEvents({ batchId: id, includeVoided: true }),
+    ])
+    setBatch(batch)
+    setUsers(users)
+    setCurrentUser(currentUser)
+    setServingEvents(events)
+
+    const [recipe, children, photoUrl] = await Promise.all([
+      getRecipe(batch.recipe_id),
+      listChildren(),
+      getPhotoUrl(batch.photo_path),
+    ])
+    setRecipe(recipe)
+    setChild(children.find((c) => c.id === batch.child_id) ?? null)
+    setPhotoUrl(photoUrl)
+  }
 
   useEffect(() => {
     setBatch(null)
     setError(null)
-    getBatch(id)
-      .then(async (batch) => {
-        setBatch(batch)
-        const [recipe, children, users, photoUrl] = await Promise.all([
-          getRecipe(batch.recipe_id),
-          listChildren(),
-          listUsers(),
-          getPhotoUrl(batch.photo_path),
-        ])
-        setRecipe(recipe)
-        setChild(children.find((c) => c.id === batch.child_id) ?? null)
-        setPreparedBy(users.find((u) => u.id === batch.prepared_by) ?? null)
-        setPhotoUrl(photoUrl)
-      })
-      .catch((e) => setError(e.message))
+    refresh().catch((e) => setError(e.message))
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- refresh reads `id` via closure; only `id` changing should re-trigger it
   }, [id])
+
+  function userName(userId) {
+    return users.find((u) => u.id === userId)?.name ?? 'Unknown'
+  }
+
+  async function handleVoidBatch() {
+    if (!confirm('Void this batch? It will be hidden from the freezer view but kept in the record.')) return
+    try {
+      await voidBatch(batch.id)
+      await refresh()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function handleHardDeleteBatch() {
+    if (!confirm('Permanently delete this batch? This cannot be undone.')) return
+    try {
+      await hardDeleteBatch(batch.id)
+      navigate(`/recipes/${batch.recipe_id}`)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function handleVoidServingEvent(eventId) {
+    if (!confirm('Void this serving? Its portions will be added back to the batch.')) return
+    try {
+      await voidServingEvent(eventId)
+      await refresh()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function handleHardDeleteServingEvent(eventId) {
+    if (!confirm('Permanently delete this serving record? This cannot be undone.')) return
+    try {
+      await hardDeleteServingEvent(eventId)
+      await refresh()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
 
   if (error) return <p className="error">{error}</p>
   if (!batch) return <p>Loading…</p>
+
+  const isAdmin = currentUser?.role === 'admin'
 
   return (
     <div className="batch-detail">
@@ -68,10 +138,63 @@ export default function BatchDetail() {
         <dt>Portion size</dt>
         <dd>{batch.portion_size ?? '—'}</dd>
         <dt>Prepared by</dt>
-        <dd>{preparedBy?.name ?? 'Unknown'}</dd>
+        <dd>{userName(batch.prepared_by)}</dd>
         <dt>Prepared</dt>
         <dd>{new Date(batch.prepared_at).toLocaleString()}</dd>
       </dl>
+
+      <div className="button-group">
+        {!batch.voided_at && (
+          <button type="button" className="button secondary" onClick={handleVoidBatch}>
+            Void batch
+          </button>
+        )}
+        {isAdmin && (
+          <button type="button" className="button danger" onClick={handleHardDeleteBatch}>
+            Delete permanently
+          </button>
+        )}
+      </div>
+
+      <h3>Servings</h3>
+      {servingEvents.length === 0 && <p className="empty-state">No servings logged yet.</p>}
+      {servingEvents.length > 0 && (
+        <ul className="serving-list">
+          {servingEvents.map((event) => (
+            <li key={event.id} className={event.voided_at ? 'voided' : ''}>
+              <div className="serving-summary">
+                <strong>
+                  {event.portions_used} portion{event.portions_used === 1 ? '' : 's'}
+                </strong>{' '}
+                · {event.satisfaction_rating}/5 · {userName(event.served_by)} ·{' '}
+                {new Date(event.served_at).toLocaleString()}
+                {event.voided_at && ' · voided'}
+              </div>
+              {event.notes && <div className="serving-notes">{event.notes}</div>}
+              <div className="button-group">
+                {!event.voided_at && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => handleVoidServingEvent(event.id)}
+                  >
+                    Void
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="button danger"
+                    onClick={() => handleHardDeleteServingEvent(event.id)}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

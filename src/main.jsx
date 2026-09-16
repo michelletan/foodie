@@ -5,6 +5,8 @@ import './index.css'
 import App from './App.jsx'
 import BatchDetail from './routes/BatchDetail.jsx'
 import BatchForm from './routes/BatchForm.jsx'
+import FreezerView from './routes/FreezerView.jsx'
+import HistoryView from './routes/HistoryView.jsx'
 import RecipeDetail from './routes/RecipeDetail.jsx'
 import RecipeForm from './routes/RecipeForm.jsx'
 import RecipeList from './routes/RecipeList.jsx'
@@ -24,6 +26,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="batches/new" element={<BatchForm />} />
           <Route path="batches/:id" element={<BatchDetail />} />
           <Route path="serve" element={<ServeForm />} />
+          <Route path="freezer" element={<FreezerView />} />
+          <Route path="history" element={<HistoryView />} />
         </Route>
       </Routes>
     </HashRouter>

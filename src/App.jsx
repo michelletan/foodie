@@ -13,6 +13,8 @@ function App() {
           </NavLink>
           <NavLink to="/batches/new">Log batch</NavLink>
           <NavLink to="/serve">Serve</NavLink>
+          <NavLink to="/freezer">Freezer</NavLink>
+          <NavLink to="/history">History</NavLink>
         </nav>
         <UserSwitcher />
       </header>

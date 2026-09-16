@@ -30,6 +30,16 @@ Run one from the browser devtools console while `npm run dev` is running — eac
 await importPdfRecipes()
 ```
 
+## Testing
+
+```bash
+npm test
+```
+
+Unit tests cover [`src/lib/data/localBackend.js`](src/lib/data/localBackend.js) (Vitest + jsdom + `fake-indexeddb`) — seeding, the atomic serve/void portion math, admin-only gating on hard deletes, void-excludes-but-keeps behavior, and recipe format handling — plus [`importPdfRecipes.js`](src/lib/data/importPdfRecipes.js)'s idempotency. UI/component tests aren't set up yet; everything above M0's data layer has so far only been verified by hand in the browser.
+
+Node 22+'s experimental built-in `localStorage` shadows jsdom's working one with a broken stub, so the `test` script disables it via `NODE_OPTIONS=--no-experimental-webstorage`.
+
 ## Deploy
 
 Not set up yet — deliberately deferred until the app is further along. When it's time, re-add a GitHub Actions workflow that builds and deploys to GitHub Pages on push to `main`, with `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` as repo secrets and Pages source set to "GitHub Actions".
@@ -66,14 +76,14 @@ Not set up yet — deliberately deferred until the app is further along. When it
 - [x] Wires into `serveMeal()`'s atomic decrement (local backend now; same call will hit M1's Postgres function once `supabaseBackend.js` is implemented)
 
 ### M5 — Undo/delete
-- [ ] Void (soft delete) on any batch/serving_event, no time limit, any user, restores portion counts
-- [ ] Hard delete, admin-only, separate confirmation
+- [x] Void (soft delete) on any batch/serving_event, no time limit, any user, restores portion counts (batch/serving buttons on `/batches/:id`)
+- [x] Hard delete, admin-only, separate confirmation — gated both in the UI (button hidden for non-admins) and in the data layer (`requireAdmin` throws regardless of what the UI shows)
 
 ### M6 — Parent dashboard
-- [ ] Freezer view: portions remaining grouped child → recipe → batch, photo + prep date
-- [ ] History view: chronological serving feed, voided entries excluded but not deleted
-- [ ] Supabase Realtime subscriptions so both views update live
-- [ ] Child-selector skipped when only 1 child exists
+- [x] Freezer view (`/freezer`): portions remaining grouped child → recipe → batch, photo + prep date
+- [x] History view (`/history`): chronological serving feed — `listServingEvents()` defaults to `includeVoided: false`, so voided entries are excluded from the feed but stay visible (marked "voided") on the batch's own Servings list, never deleted
+- [ ] Supabase Realtime subscriptions so both views update live — can't be wired until M1 gives us a real backend to subscribe to; both views fetch once on mount with a `refresh()` function ready for a subscription to call
+- [x] Child-selector skipped when only 1 child exists (freezer view omits the child heading entirely, matching §3.5)
 
 ### M7 — Telegram notifications
 - [ ] Bot creation + chat-id linking flow, store on `users.telegram_chat_id`
