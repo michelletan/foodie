@@ -12,6 +12,7 @@ function App() {
             Recipes
           </NavLink>
           <NavLink to="/batches/new">Log batch</NavLink>
+          <NavLink to="/serve">Serve</NavLink>
         </nav>
         <UserSwitcher />
       </header>

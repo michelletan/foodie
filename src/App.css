@@ -195,3 +195,57 @@
   border: 1px solid var(--border);
   margin-bottom: 16px;
 }
+
+.portion-stepper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.portion-stepper button {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-h);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.portion-stepper button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.portion-stepper span {
+  min-width: 48px;
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.rating-options {
+  display: flex;
+  gap: 12px;
+}
+
+.rating-option {
+  flex: 1;
+  height: 64px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-h);
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rating-option.selected {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}

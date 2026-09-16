@@ -38,9 +38,16 @@ export default function BatchDetail() {
     <div className="batch-detail">
       <div className="page-header">
         <h2>{recipe?.title ?? 'Batch'}</h2>
-        <Link className="button secondary" to={`/recipes/${batch.recipe_id}`}>
-          View recipe
-        </Link>
+        <div className="button-group">
+          {batch.portions_remaining > 0 && !batch.voided_at && (
+            <Link className="button" to={`/serve?batchId=${batch.id}`}>
+              Serve
+            </Link>
+          )}
+          <Link className="button secondary" to={`/recipes/${batch.recipe_id}`}>
+            View recipe
+          </Link>
+        </div>
       </div>
 
       {batch.voided_at && <p className="error">This batch has been voided.</p>}

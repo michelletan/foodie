@@ -20,6 +20,16 @@ Feature code only ever imports from [`src/lib/data/index.js`](src/lib/data/index
 - **`local`** (default, no env setup required): browser-only mock — records in `localStorage`, photo blobs in IndexedDB, no network. Seeded with the 3 users from the spec and one child (Hazel). "Logged in as" is a plain dropdown (`setCurrentUser`), since there's no real auth backend yet. Good for building/clicking through every flow, but it's single-browser only — it can't test real multi-device sync, RLS, or Realtime.
 - **`supabase`**: the real backend ([`src/lib/data/supabaseBackend.js`](src/lib/data/supabaseBackend.js)), filled in during M1. Requires `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — copy `.env.example` to `.env.local` and set `VITE_DATA_BACKEND=supabase` plus those two vars.
 
+### Data migrations
+
+One-off imports live in `src/lib/data/` next to the backends they populate through, e.g. [`importPdfRecipes.js`](src/lib/data/importPdfRecipes.js) (the 4 recipes from "helper cooking"). They call the same `createRecipe()`/etc. functions feature code uses, so they work against whichever backend `VITE_DATA_BACKEND` currently points at — no changes needed once M1 switches this from `local` to `supabase`. Idempotent (skip anything that already exists by title), so safe to re-run.
+
+Run one from the browser devtools console while `npm run dev` is running — each is attached to `window` in dev builds only:
+
+```js
+await importPdfRecipes()
+```
+
 ## Deploy
 
 Not set up yet — deliberately deferred until the app is further along. When it's time, re-add a GitHub Actions workflow that builds and deploys to GitHub Pages on push to `main`, with `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` as repo secrets and Pages source set to "GitHub Actions".
@@ -51,9 +61,9 @@ Not set up yet — deliberately deferred until the app is further along. When it
 - [x] Photo fetch abstracted behind `getPhotoUrl()` (object URL locally; will be a signed URL once M1's `supabaseBackend.js` lands — never store/display raw public URLs)
 
 ### M4 — Serving flow (helper)
-- [ ] Batch picker → portion stepper → 1-5 rating tap targets → optional note → save
-- [ ] One-handed UI constraint: large targets, no required free text
-- [ ] Wires into the atomic decrement function from M1
+- [x] Batch picker → portion stepper → 1-5 rating tap targets → optional note → save (`/serve`, also reachable via "Serve" on a batch's detail page)
+- [x] One-handed UI constraint: large tap targets (64px stepper/rating buttons), no required free text
+- [x] Wires into `serveMeal()`'s atomic decrement (local backend now; same call will hit M1's Postgres function once `supabaseBackend.js` is implemented)
 
 ### M5 — Undo/delete
 - [ ] Void (soft delete) on any batch/serving_event, no time limit, any user, restores portion counts
