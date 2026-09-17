@@ -14,16 +14,25 @@ function capitalize(s) {
 }
 
 const PERIODS = [
-  { value: 'week', label: 'Past week', days: 7 },
+  { value: 'week', label: 'Past week' },
   { value: 'month', label: 'Past month', days: 30 },
   { value: '3months', label: 'Past 3 months', days: 90 },
-  { value: 'all', label: 'All time', days: null },
+  { value: 'all', label: 'All time' },
 ]
 
+// Calendar week, not a rolling 7 days — Monday 00:00 local time through now.
+function startOfWeek(date) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const daysSinceMonday = (d.getDay() + 6) % 7
+  d.setDate(d.getDate() - daysSinceMonday)
+  return d
+}
+
 function sinceFor(period) {
+  if (period === 'week') return startOfWeek(new Date()).toISOString()
   const days = PERIODS.find((p) => p.value === period)?.days
-  if (!days) return undefined
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+  return days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString() : undefined
 }
 
 // listServingEvents() defaults to includeVoided: false, which is exactly the

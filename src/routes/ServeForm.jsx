@@ -20,8 +20,13 @@ export default function ServeForm() {
   const [batches, setBatches] = useState(null)
   const [recipes, setRecipes] = useState(null)
   const [mealType, setMealType] = useState(null)
-  const [batchId, setBatchId] = useState(searchParams.get('batchId') ?? '')
-  const [portionsUsed, setPortionsUsed] = useState(1)
+  // One meal can draw portions from several freezer batches at once — each
+  // entry is its own {batchId, portionsUsed}, saved as its own serving_event
+  // row sharing the same meal_type/rating/notes (see handleSubmit).
+  const [freezerItems, setFreezerItems] = useState(() => {
+    const preselected = searchParams.get('batchId')
+    return preselected ? [{ batchId: preselected, portionsUsed: 1 }] : []
+  })
   const [description, setDescription] = useState('')
   const [photoBlob, setPhotoBlob] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -44,7 +49,10 @@ export default function ServeForm() {
     }
   }, [previewUrl])
 
-  const selectedBatch = useMemo(() => batches?.find((b) => b.id === batchId) ?? null, [batches, batchId])
+  const availableBatches = useMemo(
+    () => batches?.filter((b) => !freezerItems.some((i) => i.batchId === b.id)) ?? [],
+    [batches, freezerItems]
+  )
 
   function recipeTitle(recipeId) {
     return recipes?.find((r) => r.id === recipeId)?.title ?? 'Unknown recipe'
@@ -55,26 +63,30 @@ export default function ServeForm() {
     // Milk doesn't use any of the freezer/description/photo fields, so drop
     // whatever was in them rather than silently submitting stale values.
     if (value === 'milk') {
-      setBatchId('')
-      setPortionsUsed(1)
+      setFreezerItems([])
       setDescription('')
       setPhotoBlob(null)
       setPreviewUrl(null)
     }
   }
 
-  function handleBatchChange(newBatchId) {
-    setBatchId(newBatchId)
-    setPortionsUsed(1)
+  function handleAddFreezerItem(newBatchId) {
+    if (!newBatchId) return
+    setFreezerItems((items) => [...items, { batchId: newBatchId, portionsUsed: 1 }])
   }
 
-  function decrementPortions() {
-    setPortionsUsed((n) => Math.max(1, n - 1))
+  function removeFreezerItem(batchId) {
+    setFreezerItems((items) => items.filter((i) => i.batchId !== batchId))
   }
 
-  function incrementPortions() {
-    const max = selectedBatch?.portions_remaining ?? 1
-    setPortionsUsed((n) => Math.min(max, n + 1))
+  function adjustFreezerItemPortions(batchId, delta) {
+    setFreezerItems((items) =>
+      items.map((i) => {
+        if (i.batchId !== batchId) return i
+        const max = batches.find((b) => b.id === batchId)?.portions_remaining ?? 1
+        return { ...i, portionsUsed: Math.min(max, Math.max(1, i.portionsUsed + delta)) }
+      })
+    )
   }
 
   async function handlePhotoSelected(e) {
@@ -105,25 +117,45 @@ export default function ServeForm() {
     setError(null)
 
     if (!mealType) return setError('Tap a meal.')
-    if (mealType !== 'milk' && !batchId && !description.trim()) {
-      return setError('Select from the freezer or describe what was served.')
+
+    // Each freezer item becomes its own serving_event row; a filled-in
+    // description becomes one more (batch-less) row. Milk with nothing
+    // selected is still exactly one row, just with no batch or description.
+    const items = freezerItems.map((i) => ({ batchId: i.batchId, portionsUsed: i.portionsUsed }))
+    if (description.trim()) items.push({ batchId: null, portionsUsed: null })
+    if (items.length === 0) {
+      if (mealType === 'milk') {
+        items.push({ batchId: null, portionsUsed: null })
+      } else {
+        return setError('Select from the freezer or describe what was served.')
+      }
     }
     if (!rating) return setError('Tap a rating.')
 
     setSaving(true)
+    let savedCount = 0
     try {
-      await serveMeal({
-        batchId: batchId || null,
-        portionsUsed: batchId ? portionsUsed : null,
-        mealType,
-        description: description.trim() || null,
-        photoBlob,
-        satisfactionRating: rating,
-        notes: notes.trim() || null,
-      })
-      navigate(batchId ? `/batches/${batchId}` : '/history')
+      for (const item of items) {
+        await serveMeal({
+          batchId: item.batchId,
+          portionsUsed: item.portionsUsed,
+          mealType,
+          description: item.batchId ? null : description.trim() || null,
+          // Only attach the photo once, to whichever row saves first —
+          // there's one photo per meal, not one per freezer item.
+          photoBlob: savedCount === 0 ? photoBlob : null,
+          satisfactionRating: rating,
+          notes: notes.trim() || null,
+        })
+        savedCount += 1
+      }
+      navigate(freezerItems[0] ? `/batches/${freezerItems[0].batchId}` : '/history')
     } catch (err) {
-      setError(err.message)
+      setError(
+        savedCount > 0
+          ? `Saved ${savedCount} of ${items.length} items, then: ${err.message}. Check History for what went through.`
+          : err.message
+      )
       setSaving(false)
     }
   }
@@ -156,35 +188,54 @@ export default function ServeForm() {
         {showDetails && (
           <>
             <div className="field">
-              <label htmlFor="batch">From the freezer (optional)</label>
-              <select id="batch" value={batchId} onChange={(e) => handleBatchChange(e.target.value)}>
-                <option value="">None</option>
-                {batches.map((b) => (
+              <label htmlFor="addBatch">From the freezer (optional)</label>
+              <select id="addBatch" value="" onChange={(e) => handleAddFreezerItem(e.target.value)}>
+                <option value="">Add a batch…</option>
+                {availableBatches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {recipeTitle(b.recipe_id)} — {b.portions_remaining} left
                   </option>
                 ))}
               </select>
-            </div>
 
-            {selectedBatch && (
-              <div className="field">
-                <label>Portions served</label>
-                <div className="portion-stepper">
-                  <button type="button" onClick={decrementPortions} disabled={portionsUsed <= 1}>
-                    −
-                  </button>
-                  <span>{portionsUsed}</span>
-                  <button
-                    type="button"
-                    onClick={incrementPortions}
-                    disabled={portionsUsed >= selectedBatch.portions_remaining}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            )}
+              {freezerItems.length > 0 && (
+                <ul className="freezer-item-list">
+                  {freezerItems.map((item) => {
+                    const batch = batches.find((b) => b.id === item.batchId)
+                    return (
+                      <li key={item.batchId} className="freezer-item-row">
+                        <span className="freezer-item-title">{recipeTitle(batch?.recipe_id)}</span>
+                        <div className="portion-stepper small">
+                          <button
+                            type="button"
+                            onClick={() => adjustFreezerItemPortions(item.batchId, -1)}
+                            disabled={item.portionsUsed <= 1}
+                          >
+                            −
+                          </button>
+                          <span>{item.portionsUsed}</span>
+                          <button
+                            type="button"
+                            onClick={() => adjustFreezerItemPortions(item.batchId, 1)}
+                            disabled={item.portionsUsed >= (batch?.portions_remaining ?? 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          className="freezer-item-remove"
+                          aria-label="Remove"
+                          onClick={() => removeFreezerItem(item.batchId)}
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
 
             <div className="field">
               <label htmlFor="description">Description (optional)</label>

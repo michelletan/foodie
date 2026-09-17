@@ -317,6 +317,59 @@
   color: var(--text-h);
 }
 
+.portion-stepper.small {
+  gap: 8px;
+}
+
+.portion-stepper.small button {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+}
+
+.portion-stepper.small span {
+  min-width: 22px;
+  font-size: 16px;
+}
+
+.freezer-item-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.freezer-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.freezer-item-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.freezer-item-remove {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-h);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .rating-options {
   display: flex;
   gap: 12px;
