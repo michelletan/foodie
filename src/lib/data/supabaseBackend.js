@@ -131,6 +131,10 @@ export async function voidBatch(batchId) {
   return unwrap(await supabase.rpc('void_batch', { p_batch_id: batchId }))
 }
 
+export async function throwOutBatch(batchId) {
+  return unwrap(await supabase.rpc('throw_out_batch', { p_batch_id: batchId }))
+}
+
 export async function hardDeleteBatch(batchId) {
   const batch = await getBatch(batchId)
   const result = unwrap(await supabase.rpc('hard_delete_batch', { p_batch_id: batchId }))

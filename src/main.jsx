@@ -12,6 +12,7 @@ import RecipeDetail from './routes/RecipeDetail.jsx'
 import RecipeForm from './routes/RecipeForm.jsx'
 import RecipeList from './routes/RecipeList.jsx'
 import ServeForm from './routes/ServeForm.jsx'
+import UsedBatchesView from './routes/UsedBatchesView.jsx'
 
 // HashRouter avoids needing a GitHub Pages SPA-fallback trick for a static
 // site with no server-side rewrites.
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="batches/:id" element={<BatchDetail />} />
             <Route path="serve" element={<ServeForm />} />
             <Route path="freezer" element={<FreezerView />} />
+            <Route path="freezer/used" element={<UsedBatchesView />} />
             <Route path="history" element={<HistoryView />} />
           </Route>
         </Routes>

@@ -18,6 +18,7 @@ export const {
   getBatch,
   createBatch,
   voidBatch,
+  throwOutBatch,
   hardDeleteBatch,
   listServingEvents,
   serveMeal,

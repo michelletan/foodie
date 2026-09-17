@@ -13,11 +13,49 @@ function formatExpiry(key) {
   return new Date(key).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const SORT_OPTIONS = [
+  { value: 'expiry', label: 'Expiry date' },
+  { value: 'created', label: 'Date prepared' },
+  { value: 'portions', label: 'Portions left' },
+]
+
+// Builds the sections shown under a child: 'expiry' keeps the existing
+// expiry-date grouping (with overdue highlighting), while 'created' and
+// 'portions' just sort everything into one flat, unlabeled section — an
+// explicit sort pick means the person wants a simple ranked list, not more
+// grouping.
+function buildSections(batches, sortBy) {
+  if (sortBy === 'created') {
+    return [{ key: 'flat', label: null, overdue: false, batches: [...batches].sort((a, b) => new Date(a.prepared_at) - new Date(b.prepared_at)) }]
+  }
+  if (sortBy === 'portions') {
+    return [{ key: 'flat', label: null, overdue: false, batches: [...batches].sort((a, b) => a.portions_remaining - b.portions_remaining) }]
+  }
+
+  const byExpiry = new Map()
+  for (const batch of batches) {
+    const key = expiryKey(batch)
+    if (!byExpiry.has(key)) byExpiry.set(key, [])
+    byExpiry.get(key).push(batch)
+  }
+  const today = new Date().toISOString().slice(0, 10)
+  return [...byExpiry.entries()]
+    // Soonest expiry first; batches with no expiry set trail at the end.
+    .sort(([a], [b]) => (a ?? '9999').localeCompare(b ?? '9999'))
+    .map(([key, groupBatches]) => ({
+      key: key ?? 'none',
+      label: formatExpiry(key),
+      overdue: key !== null && key < today,
+      batches: [...groupBatches].sort((a, b) => new Date(a.prepared_at) - new Date(b.prepared_at)),
+    }))
+}
+
 // Once M1 lands, wire a Supabase Realtime subscription on `batches` here and
 // call refresh() on change instead of only fetching once on mount.
 export default function FreezerView() {
-  const [groups, setGroups] = useState(null)
+  const [childGroups, setChildGroups] = useState(null)
   const [singleChild, setSingleChild] = useState(false)
+  const [sortBy, setSortBy] = useState('expiry')
   const [error, setError] = useState(null)
 
   async function refresh() {
@@ -32,32 +70,14 @@ export default function FreezerView() {
     const recipeById = new Map(recipes.map((r) => [r.id, r]))
     const byChild = new Map()
     for (const batch of withPhotos) {
-      if (!byChild.has(batch.child_id)) byChild.set(batch.child_id, new Map())
-      const byExpiry = byChild.get(batch.child_id)
-      const key = expiryKey(batch)
-      if (!byExpiry.has(key)) byExpiry.set(key, [])
-      byExpiry.get(key).push(batch)
+      if (!byChild.has(batch.child_id)) byChild.set(batch.child_id, [])
+      byChild.get(batch.child_id).push({ ...batch, recipe: recipeById.get(batch.recipe_id) })
     }
 
-    const today = new Date().toISOString().slice(0, 10)
-
-    setGroups(
+    setChildGroups(
       children
         .filter((c) => byChild.has(c.id))
-        .map((child) => ({
-          child,
-          // Soonest expiry first; batches with no expiry set trail at the end.
-          expiryGroups: [...byChild.get(child.id).entries()]
-            .sort(([a], [b]) => (a ?? '9999').localeCompare(b ?? '9999'))
-            .map(([key, groupBatches]) => ({
-              key,
-              label: formatExpiry(key),
-              overdue: key !== null && key < today,
-              batches: groupBatches
-                .map((b) => ({ ...b, recipe: recipeById.get(b.recipe_id) }))
-                .sort((a, b) => new Date(a.prepared_at) - new Date(b.prepared_at)),
-            })),
-        }))
+        .map((child) => ({ child, batches: byChild.get(child.id) }))
     )
   }
 
@@ -66,25 +86,45 @@ export default function FreezerView() {
   }, [])
 
   if (error) return <p className="error">{error}</p>
-  if (!groups) return <p>Loading…</p>
+  if (!childGroups) return <p>Loading…</p>
 
   return (
     <div>
-      <h2>Freezer</h2>
+      <div className="page-header">
+        <h2>Freezer</h2>
+        <Link className="button secondary" to="/freezer/used">
+          Used batches
+        </Link>
+      </div>
 
-      {groups.length === 0 && <p className="empty-state">Nothing in the freezer right now.</p>}
+      {childGroups.length > 0 && (
+        <div className="freezer-sort">
+          <label htmlFor="freezerSort">Sort by</label>
+          <select id="freezerSort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      {groups.map(({ child, expiryGroups }) => (
+      {childGroups.length === 0 && <p className="empty-state">Nothing in the freezer right now.</p>}
+
+      {childGroups.map(({ child, batches }) => (
         <section key={child.id} className="freezer-child-group">
           {!singleChild && <h3>{child.name}</h3>}
-          {expiryGroups.map(({ key, label, overdue, batches }) => (
-            <div key={key ?? 'none'} className="freezer-recipe-group">
-              <h4 className={overdue ? 'freezer-expiry-overdue' : ''}>
-                {label}
-                {overdue && ' · Expired'}
-              </h4>
+          {buildSections(batches, sortBy).map(({ key, label, overdue, batches: sectionBatches }) => (
+            <div key={key} className="freezer-recipe-group">
+              {label && (
+                <h4 className={overdue ? 'freezer-expiry-overdue' : ''}>
+                  {label}
+                  {overdue && ' · Expired'}
+                </h4>
+              )}
               <div className="batch-cards">
-                {batches.map((batch) => (
+                {sectionBatches.map((batch) => (
                   <Link key={batch.id} to={`/batches/${batch.id}`} className="batch-card">
                     {batch.photoUrl && <img src={batch.photoUrl} alt="" />}
                     <div className="batch-card-info">

@@ -14,6 +14,7 @@ const {
   getBatch,
   createBatch,
   voidBatch,
+  throwOutBatch,
   hardDeleteBatch,
   listServingEvents,
   serveMeal,
@@ -159,6 +160,22 @@ describe('batches', () => {
     expect(await listBatches()).toEqual([])
     expect(await listBatches({ includeVoided: true })).toHaveLength(1)
     expect((await getBatch(batch.id)).voided_at).not.toBeNull()
+  })
+
+  it('throwing out a batch zeroes its portions but keeps it (unvoided, undeleted) for reference', async () => {
+    const batch = await makeBatch({ portionsTotal: 4 })
+
+    const thrown = await throwOutBatch(batch.id)
+
+    expect(thrown.portions_remaining).toBe(0)
+    // listBatches() doesn't filter by portion count — that's a UI concern
+    // (FreezerView's own "in stock" filter) — so the record is still listed,
+    // just voided_at/deleted_at both stay null.
+    expect(await listBatches()).toContainEqual(thrown)
+    const stored = await getBatch(batch.id)
+    expect(stored.portions_remaining).toBe(0)
+    expect(stored.voided_at).toBeNull()
+    expect(stored.deleted_at).toBeNull()
   })
 
   it('hard delete requires admin', async () => {

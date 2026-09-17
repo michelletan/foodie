@@ -174,6 +174,17 @@ export async function voidBatch(batchId) {
   return batch
 }
 
+// Zeroes portions_remaining without voiding/deleting — the batch stays
+// around for the used-batches view, same as one that was fully served.
+export async function throwOutBatch(batchId) {
+  const db = loadDb()
+  const batch = db.batches.find((b) => b.id === batchId)
+  if (!batch) throw new Error(`Batch not found: ${batchId}`)
+  batch.portions_remaining = 0
+  saveDb(db)
+  return batch
+}
+
 export async function hardDeleteBatch(batchId) {
   const db = loadDb()
   const user = await getCurrentUser()

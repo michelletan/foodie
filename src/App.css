@@ -455,6 +455,23 @@
   font-size: 13px;
 }
 
+.freezer-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.freezer-sort select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
 .freezer-child-group {
   margin-bottom: 24px;
 }

@@ -10,6 +10,7 @@ import {
   listChildren,
   listServingEvents,
   listUsers,
+  throwOutBatch,
   voidBatch,
   voidServingEvent,
 } from '../lib/data/index.js'
@@ -69,6 +70,21 @@ export default function BatchDetail() {
     if (!confirm('Void this batch? It will be hidden from the freezer view but kept in the record.')) return
     try {
       await voidBatch(batch.id)
+      await refresh()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function handleThrowOutBatch() {
+    if (
+      !confirm(
+        'Throw out the rest of this batch? Portions remaining will drop to 0 and it will disappear from the freezer view, but it stays in your history.'
+      )
+    )
+      return
+    try {
+      await throwOutBatch(batch.id)
       await refresh()
     } catch (e) {
       setError(e.message)
@@ -155,6 +171,11 @@ export default function BatchDetail() {
         {!batch.voided_at && (
           <button type="button" className="button secondary" onClick={handleVoidBatch}>
             Void batch
+          </button>
+        )}
+        {batch.portions_remaining > 0 && !batch.voided_at && (
+          <button type="button" className="button secondary" onClick={handleThrowOutBatch}>
+            Throw out
           </button>
         )}
         {isAdmin && (
