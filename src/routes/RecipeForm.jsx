@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createRecipe, getRecipe, updateRecipe } from '../lib/data/index.js'
+import { PROTEINS } from '../lib/proteins.js'
 
 const EMPTY_INGREDIENT = { name: '', quantity: '', unit: '' }
 
@@ -11,6 +12,7 @@ export default function RecipeForm() {
 
   const [format, setFormat] = useState('structured')
   const [title, setTitle] = useState('')
+  const [protein, setProtein] = useState('')
   const [ingredients, setIngredients] = useState([{ ...EMPTY_INGREDIENT }])
   const [instructions, setInstructions] = useState('')
   const [notes, setNotes] = useState('')
@@ -26,6 +28,7 @@ export default function RecipeForm() {
         const recipeFormat = recipe.format ?? 'structured'
         setFormat(recipeFormat)
         setTitle(recipe.title)
+        setProtein(recipe.protein ?? '')
         if (recipeFormat === 'freetext') {
           setRawText(recipe.instructions)
         } else {
@@ -75,6 +78,8 @@ export default function RecipeForm() {
       }
     }
 
+    input.protein = protein || null
+
     setSaving(true)
     try {
       const recipe = isEditing ? await updateRecipe(id, input) : await createRecipe(input)
@@ -95,6 +100,22 @@ export default function RecipeForm() {
         <div className="field">
           <label htmlFor="title">Title</label>
           <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Protein</label>
+          <div className="quick-options">
+            {PROTEINS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                className={`quick-option${protein === p.value ? ' selected' : ''}`}
+                onClick={() => setProtein(protein === p.value ? '' : p.value)}
+              >
+                {p.icon} {p.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="field">

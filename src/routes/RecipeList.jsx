@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listRecipes } from '../lib/data/index.js'
+import { proteinInfo } from '../lib/proteins.js'
 
 export default function RecipeList() {
   const [recipes, setRecipes] = useState(null)
@@ -28,7 +29,10 @@ export default function RecipeList() {
         <ul className="recipe-list">
           {recipes.map((r) => (
             <li key={r.id}>
-              <Link to={`/recipes/${r.id}`}>{r.title}</Link>
+              <Link to={`/recipes/${r.id}`}>
+                {proteinInfo(r.protein) && <span aria-hidden="true">{proteinInfo(r.protein).icon} </span>}
+                {r.title}
+              </Link>
             </li>
           ))}
         </ul>

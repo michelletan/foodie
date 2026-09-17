@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { listBatches, listRecipes, serveMeal } from '../lib/data/index.js'
+import { listBatches, listRecipes, listServingEvents, serveMeal } from '../lib/data/index.js'
 import { compressImage } from '../lib/photo.js'
 
 const MEAL_TYPES = [
@@ -19,6 +19,7 @@ export default function ServeForm() {
 
   const [batches, setBatches] = useState(null)
   const [recipes, setRecipes] = useState(null)
+  const [daysSinceServedByBatch, setDaysSinceServedByBatch] = useState(new Map())
   const [mealType, setMealType] = useState(null)
   // One meal can draw portions from several freezer batches at once — each
   // entry is its own {batchId, portionsUsed}, saved as its own serving_event
@@ -37,9 +38,27 @@ export default function ServeForm() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    Promise.all([listBatches(), listRecipes()]).then(([allBatches, allRecipes]) => {
+    Promise.all([listBatches(), listRecipes(), listServingEvents()]).then(([allBatches, allRecipes, events]) => {
       setBatches(allBatches.filter((b) => b.portions_remaining > 0))
       setRecipes(allRecipes)
+
+      const lastServed = new Map()
+      for (const event of events) {
+        if (!event.batch_id) continue
+        const prev = lastServed.get(event.batch_id)
+        if (!prev || event.served_at > prev) lastServed.set(event.batch_id, event.served_at)
+      }
+      // "Now" is read once here, not on every render, so the suggestion
+      // below can stay a pure function of state.
+      const now = Date.now()
+      setDaysSinceServedByBatch(
+        new Map(
+          [...lastServed].map(([batchId, servedAt]) => [
+            batchId,
+            Math.floor((now - new Date(servedAt).getTime()) / (24 * 60 * 60 * 1000)),
+          ])
+        )
+      )
     })
   }, [])
 
@@ -53,6 +72,21 @@ export default function ServeForm() {
     () => batches?.filter((b) => !freezerItems.some((i) => i.batchId === b.id)) ?? [],
     [batches, freezerItems]
   )
+
+  // Nudges toward freezer rotation: whichever available batch has gone
+  // longest without being served (never-served batches count as the
+  // longest wait, ranked by how long ago they were prepared).
+  const suggestion = useMemo(() => {
+    if (availableBatches.length < 2) return null
+    return [...availableBatches].sort((a, b) => {
+      const aDays = daysSinceServedByBatch.get(a.id)
+      const bDays = daysSinceServedByBatch.get(b.id)
+      if (aDays === undefined && bDays === undefined) return a.prepared_at < b.prepared_at ? -1 : 1
+      if (aDays === undefined) return -1
+      if (bDays === undefined) return 1
+      return bDays - aDays
+    })[0]
+  }, [availableBatches, daysSinceServedByBatch])
 
   function recipeTitle(recipeId) {
     return recipes?.find((r) => r.id === recipeId)?.title ?? 'Unknown recipe'
@@ -187,6 +221,20 @@ export default function ServeForm() {
 
         {showDetails && (
           <>
+            {suggestion && (
+              <div className="serve-suggestion">
+                <span>
+                  💡 <strong>{recipeTitle(suggestion.recipe_id)}</strong> hasn't been served{' '}
+                  {daysSinceServedByBatch.has(suggestion.id)
+                    ? `in ${daysSinceServedByBatch.get(suggestion.id)} days`
+                    : 'yet'}
+                </span>
+                <button type="button" className="button secondary" onClick={() => handleAddFreezerItem(suggestion.id)}>
+                  Add
+                </button>
+              </div>
+            )}
+
             <div className="field">
               <label htmlFor="addBatch">From the freezer (optional)</label>
               <select id="addBatch" value="" onChange={(e) => handleAddFreezerItem(e.target.value)}>

@@ -70,11 +70,18 @@ export async function getRecipe(recipeId) {
   return unwrap(await supabase.from('recipes').select('*').eq('id', recipeId).single())
 }
 
-export async function createRecipe({ title, format, ingredients, instructions, notes }) {
+export async function createRecipe({ title, format, ingredients, instructions, notes, protein }) {
   return unwrap(
     await supabase
       .from('recipes')
-      .insert({ title, format: format ?? 'structured', ingredients, instructions, notes: notes ?? null })
+      .insert({
+        title,
+        format: format ?? 'structured',
+        ingredients,
+        instructions,
+        notes: notes ?? null,
+        protein: protein ?? null,
+      })
       .select()
       .single()
   )

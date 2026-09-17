@@ -404,6 +404,24 @@
   padding: 0 4px;
 }
 
+.serve-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--complementary);
+  border-radius: 8px;
+  background: var(--complementary-bg);
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.serve-suggestion button {
+  flex-shrink: 0;
+}
+
 .batch-detail > .button-group {
   margin-bottom: 32px;
 }

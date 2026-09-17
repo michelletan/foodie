@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getRecipe, listUsers } from '../lib/data/index.js'
+import { proteinInfo } from '../lib/proteins.js'
 
 export default function RecipeDetail() {
   const { id } = useParams()
@@ -22,10 +23,15 @@ export default function RecipeDetail() {
   if (error) return <p className="error">{error}</p>
   if (!recipe) return <p>Loading…</p>
 
+  const protein = proteinInfo(recipe.protein)
+
   return (
     <div className="recipe-detail">
       <div className="page-header">
-        <h2>{recipe.title}</h2>
+        <h2>
+          {protein && <span aria-hidden="true">{protein.icon} </span>}
+          {recipe.title}
+        </h2>
         <div className="button-group">
           <Link className="button" to={`/batches/new?recipeId=${recipe.id}`}>
             Log batch
@@ -37,6 +43,14 @@ export default function RecipeDetail() {
       </div>
 
       <dl>
+        {protein && (
+          <>
+            <dt>Protein</dt>
+            <dd>
+              {protein.icon} {protein.label}
+            </dd>
+          </>
+        )}
         <dt>Added by</dt>
         <dd>{author?.name ?? 'Unknown'}</dd>
         <dt>Added</dt>

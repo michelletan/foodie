@@ -92,7 +92,7 @@ export async function getRecipe(recipeId) {
   return recipe
 }
 
-export async function createRecipe({ title, format, ingredients, instructions, notes }) {
+export async function createRecipe({ title, format, ingredients, instructions, notes, protein }) {
   const db = loadDb()
   const user = await getCurrentUser()
   const recipe = {
@@ -102,6 +102,7 @@ export async function createRecipe({ title, format, ingredients, instructions, n
     ingredients,
     instructions,
     notes: notes ?? null,
+    protein: protein ?? null,
     created_by: user.id,
     created_at: now(),
   }

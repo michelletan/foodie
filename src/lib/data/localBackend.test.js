@@ -101,6 +101,28 @@ describe('recipes', () => {
   it('throws for an unknown recipe id', async () => {
     await expect(getRecipe('missing')).rejects.toThrow(/not found/i)
   })
+
+  it('defaults protein to null, but stores and updates it when given', async () => {
+    const withoutProtein = await createRecipe({
+      title: 'Mystery bowl',
+      ingredients: [{ name: 'x', quantity: '1', unit: '' }],
+      instructions: 'do it',
+      notes: null,
+    })
+    expect(withoutProtein.protein).toBeNull()
+
+    const withProtein = await createRecipe({
+      title: 'Chicken soup',
+      ingredients: [{ name: 'chicken', quantity: '1', unit: '' }],
+      instructions: 'do it',
+      notes: null,
+      protein: 'chicken',
+    })
+    expect(withProtein.protein).toBe('chicken')
+
+    const updated = await updateRecipe(withProtein.id, { protein: 'beef' })
+    expect(updated.protein).toBe('beef')
+  })
 })
 
 async function makeBatch(overrides = {}) {
