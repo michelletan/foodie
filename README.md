@@ -35,8 +35,8 @@ await importPdfRecipes()
 The migrations and the real backend ([`supabaseBackend.js`](src/lib/data/supabaseBackend.js)) are written — this is what's left to actually turn it on, all done in the [Supabase dashboard](https://supabase.com/dashboard):
 
 1. **Create the project** (New project). Save the database password somewhere safe (a password manager) — Supabase won't show it again.
-2. **Run the migrations**, in order, via SQL Editor → paste each file's contents → Run: [`0001_schema.sql`](supabase/migrations/0001_schema.sql), [`0002_rls.sql`](supabase/migrations/0002_rls.sql), [`0003_functions.sql`](supabase/migrations/0003_functions.sql), [`0004_storage.sql`](supabase/migrations/0004_storage.sql), [`0005_seed.sql`](supabase/migrations/0005_seed.sql), [`0006_username_login.sql`](supabase/migrations/0006_username_login.sql). (Or via the Supabase CLI — `supabase link` then `supabase db push` — if you'd rather.)
-3. **Create the 3 accounts**: Authentication → Users → Add user, one each for the 2 parents + helper (email/password is simplest — the email never appears in the app UI, see step 6). Copy each one's UUID.
+2. **Run the migrations**, in order, via SQL Editor → paste each file's contents → Run: [`0001_schema.sql`](supabase/migrations/0001_schema.sql), [`0002_rls.sql`](supabase/migrations/0002_rls.sql), [`0003_functions.sql`](supabase/migrations/0003_functions.sql), [`0004_storage.sql`](supabase/migrations/0004_storage.sql), [`0005_seed.sql`](supabase/migrations/0005_seed.sql). (Or via the Supabase CLI — `supabase link` then `supabase db push` — if you'd rather.)
+3. **Create the 3 accounts**: Authentication → Users → Add user, one each for the 2 parents + helper (email/password is simplest). Copy each one's UUID.
 4. **Link those accounts to app roles** — SQL Editor, using the 3 real UUIDs from step 3:
    ```sql
    insert into public.users (id, name, role) values
@@ -45,14 +45,8 @@ The migrations and the real backend ([`supabaseBackend.js`](src/lib/data/supabas
      ('<uuid>', 'Helper', 'user');
    ```
 5. **Get the API URL + anon key**: Project Settings → API. Put them in `.env.local` (copy from `.env.example`) along with `VITE_DATA_BACKEND=supabase`.
-6. **Set a username per account** — SQL Editor, using the same 3 UUIDs:
-   ```sql
-   update public.users set username = 'parent1' where id = '<uuid>';
-   update public.users set username = 'parent2' where id = '<uuid>';
-   update public.users set username = 'helper' where id = '<uuid>';
-   ```
 
-`src/routes/Login.jsx` handles sign-in (username/password) — the username is resolved to the account's real email server-side via the `email_for_username` RPC from step 2's migration, so the email itself is only ever entered once, in the dashboard. There's no signup form, since accounts are only ever created manually as above.
+`src/routes/Login.jsx` handles sign-in (email/password); there's no signup form, since accounts are only ever created manually as above.
 
 ## Testing
 
@@ -120,5 +114,4 @@ Pushing to `main` builds and deploys to GitHub Pages via [`.github/workflows/dep
 
 ### M8 — Ops
 - [ ] Keepalive ping (GitHub Actions cron or UptimeRobot) so the Supabase free project doesn't pause after 7 days idle
-- [x] PWA manifest/icons for home-screen install on all 3 phones — [`vite-plugin-pwa`](vite.config.js) generates the manifest + service worker (precaches the app shell for offline use; `HashRouter` means there's no server-side route to fall back on, so nothing else needs runtime caching); icons regenerate from `public/favicon.svg` via `npm run icons` ([`scripts/generate-icons.mjs`](scripts/generate-icons.mjs)) — re-run that whenever the logo changes
-- [x] Username login instead of email — `Login.jsx` takes a username, resolved to the real account email via a Supabase RPC before `signInWithPassword` (see "Supabase setup" step 6 above); session persists in `localStorage` (supabase-js default, made explicit in [`supabaseClient.js`](src/lib/supabaseClient.js)) so an installed PWA stays logged in across launches
+- [x] PWA manifest/icons for home-screen install on all 3 phones — [`vite-plugin-pwa`](vite.config.js) generates the manifest + service worker (precaches the app shell for offline use; `HashRouter` means there's no server-side route to fall back on, so nothing else needs runtime caching); icons regenerate from `public/favicon.svg` via `npm run icons` ([`scripts/generate-icons.mjs`](scripts/generate-icons.mjs)) — re-run that whenever the logo changes; session persists in `localStorage` (supabase-js default, made explicit in [`supabaseClient.js`](src/lib/supabaseClient.js)) so an installed PWA stays logged in across launches

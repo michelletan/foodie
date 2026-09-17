@@ -4,7 +4,7 @@ import { signIn } from '../lib/data/index.js'
 // No signup form here on purpose — accounts are created manually in the
 // Supabase dashboard (see README's Supabase setup steps), not self-served.
 export default function Login() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -14,7 +14,7 @@ export default function Login() {
     setError(null)
     setSubmitting(true)
     try {
-      await signIn({ username: username.trim(), password })
+      await signIn({ email: email.trim(), password })
       // AuthGate's onAuthStateChange subscription picks up the new session.
     } catch (err) {
       setError(err.message)
@@ -27,15 +27,13 @@ export default function Login() {
       <h1>foodie</h1>
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="username">Username</label>
+          <label htmlFor="email">Email</label>
           <input
-            id="username"
-            type="text"
+            id="email"
+            type="email"
             autoComplete="username"
-            autoCapitalize="none"
-            autoCorrect="off"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
         </div>
