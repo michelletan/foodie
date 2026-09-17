@@ -282,6 +282,17 @@
   color: var(--complementary);
 }
 
+.meal-type-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.meal-type-option {
+  font-size: 15px;
+  padding: 0 4px;
+}
+
 .batch-detail > .button-group {
   margin-bottom: 32px;
 }
@@ -314,6 +325,13 @@
 .serving-notes {
   font-size: 14px;
   color: var(--text);
+  margin-bottom: 8px;
+}
+
+.serving-photo {
+  display: block;
+  max-width: 120px;
+  border-radius: 8px;
   margin-bottom: 8px;
 }
 
@@ -381,7 +399,8 @@
   gap: 8px;
 }
 
-.history-list li a {
+.history-list li a,
+.history-list li > div {
   display: block;
   border: 1px solid var(--border);
   border-radius: 8px;

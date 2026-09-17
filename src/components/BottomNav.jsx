@@ -12,27 +12,6 @@ const ICON_PROPS = {
 
 const TABS = [
   {
-    to: '/',
-    end: true,
-    label: 'Recipes',
-    icon: (
-      <svg {...ICON_PROPS}>
-        <path d="M4 5.5C4 4.67 4.67 4 5.5 4H12v16H5.5C4.67 20 4 19.33 4 18.5z" />
-        <path d="M20 5.5C20 4.67 19.33 4 18.5 4H12v16h6.5c.83 0 1.5-.67 1.5-1.5z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/batches/new',
-    label: 'Log batch',
-    icon: (
-      <svg {...ICON_PROPS}>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 8v8M8 12h8" />
-      </svg>
-    ),
-  },
-  {
     to: '/serve',
     label: 'Serve',
     icon: (
@@ -48,6 +27,17 @@ const TABS = [
     icon: (
       <svg {...ICON_PROPS}>
         <path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11" />
+      </svg>
+    ),
+  },
+  {
+    to: '/',
+    end: true,
+    label: 'Recipes',
+    icon: (
+      <svg {...ICON_PROPS}>
+        <path d="M4 5.5C4 4.67 4.67 4 5.5 4H12v16H5.5C4.67 20 4 19.33 4 18.5z" />
+        <path d="M20 5.5C20 4.67 19.33 4 18.5 4H12v16h6.5c.83 0 1.5-.67 1.5-1.5z" />
       </svg>
     ),
   },

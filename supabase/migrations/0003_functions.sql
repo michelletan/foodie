@@ -34,11 +34,16 @@ $$;
 
 -- Atomically decrements portions_remaining and logs the serving in one
 -- statement, so two people serving from the same batch at once can't
--- corrupt the count (see spec's "Portion math" note).
+-- corrupt the count (see spec's "Portion math" note). batch_id/portions_used
+-- are optional — a serving can be a free-text description, a photo, or (for
+-- meal_type 'milk') nothing at all, matching ServeForm.jsx's validation.
 create or replace function public.serve_meal(
-  p_batch_id uuid,
-  p_portions_used integer,
+  p_meal_type text,
   p_satisfaction_rating smallint,
+  p_batch_id uuid default null,
+  p_portions_used integer default null,
+  p_description text default null,
+  p_photo_path text default null,
   p_notes text default null
 )
 returns public.serving_events
@@ -49,25 +54,36 @@ as $$
 declare
   event public.serving_events;
 begin
-  update public.batches
-    set portions_remaining = portions_remaining - p_portions_used
-    where id = p_batch_id
-      and portions_remaining >= p_portions_used;
+  if p_batch_id is not null then
+    if p_portions_used is null or p_portions_used < 1 then
+      raise exception 'portions_used is required when serving from a batch';
+    end if;
 
-  if not found then
-    raise exception 'Not enough portions remaining';
+    update public.batches
+      set portions_remaining = portions_remaining - p_portions_used
+      where id = p_batch_id
+        and portions_remaining >= p_portions_used;
+
+    if not found then
+      raise exception 'Not enough portions remaining';
+    end if;
   end if;
 
-  insert into public.serving_events (batch_id, served_by, portions_used, satisfaction_rating, notes)
-  values (p_batch_id, auth.uid(), p_portions_used, p_satisfaction_rating, p_notes)
+  insert into public.serving_events (
+    batch_id, served_by, portions_used, meal_type, description, photo_path, satisfaction_rating, notes
+  )
+  values (
+    p_batch_id, auth.uid(), p_portions_used, p_meal_type, p_description, p_photo_path, p_satisfaction_rating, p_notes
+  )
   returning * into event;
 
   return event;
 end;
 $$;
 
--- Restores the batch's portions; a no-op if already voided (matches
--- localBackend.js's voidServingEvent, which the unit tests cover).
+-- Restores the batch's portions (if any were used); a no-op if already
+-- voided (matches localBackend.js's voidServingEvent, which the unit tests
+-- cover).
 create or replace function public.void_serving_event(p_event_id uuid)
 returns public.serving_events
 language plpgsql
@@ -85,9 +101,11 @@ begin
     return event;
   end if;
 
-  update public.batches
-    set portions_remaining = portions_remaining + event.portions_used
-    where id = event.batch_id;
+  if event.batch_id is not null then
+    update public.batches
+      set portions_remaining = portions_remaining + event.portions_used
+      where id = event.batch_id;
+  end if;
 
   update public.serving_events
     set voided_at = now()

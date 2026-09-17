@@ -39,16 +39,24 @@ create table public.batches (
   deleted_at timestamptz
 );
 
+-- batch_id is nullable: a serving can come from a tracked freezer batch, or
+-- just be logged as free text / a photo / nothing (milk). The check below
+-- requires batch_id or description unless meal_type is 'milk' — see
+-- ServeForm.jsx, which mirrors this rule client-side.
 create table public.serving_events (
   id uuid primary key default gen_random_uuid(),
-  batch_id uuid not null references public.batches (id),
+  batch_id uuid references public.batches (id),
   served_by uuid not null references public.users (id),
-  portions_used integer not null check (portions_used > 0),
+  portions_used integer check (portions_used > 0),
+  meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack', 'milk')),
+  description text,
+  photo_path text,
   satisfaction_rating smallint not null check (satisfaction_rating between 1 and 5),
   notes text,
   served_at timestamptz not null default now(),
   voided_at timestamptz,
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  check (meal_type = 'milk' or batch_id is not null or description is not null)
 );
 
 -- Single-row table (id is always `true`) for admin-editable app settings.

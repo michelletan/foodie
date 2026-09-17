@@ -150,11 +150,31 @@ export async function listServingEvents({ batchId, includeVoided = false } = {})
   return unwrap(await query)
 }
 
-export async function serveMeal({ batchId, portionsUsed, satisfactionRating, notes }) {
+export async function serveMeal({
+  batchId,
+  portionsUsed,
+  mealType,
+  description,
+  photoBlob,
+  satisfactionRating,
+  notes,
+}) {
+  let photoPath = null
+  if (photoBlob) {
+    photoPath = `servings/${crypto.randomUUID()}.jpg`
+    const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(photoPath, photoBlob, {
+      contentType: photoBlob.type || 'image/jpeg',
+    })
+    if (error) throw new Error(error.message)
+  }
+
   return unwrap(
     await supabase.rpc('serve_meal', {
-      p_batch_id: batchId,
-      p_portions_used: portionsUsed,
+      p_batch_id: batchId ?? null,
+      p_portions_used: batchId ? portionsUsed : null,
+      p_meal_type: mealType,
+      p_description: description ?? null,
+      p_photo_path: photoPath,
       p_satisfaction_rating: satisfactionRating,
       p_notes: notes ?? null,
     })
@@ -166,7 +186,10 @@ export async function voidServingEvent(eventId) {
 }
 
 export async function hardDeleteServingEvent(eventId) {
-  return unwrap(await supabase.rpc('hard_delete_serving_event', { p_event_id: eventId }))
+  const { data: event } = await supabase.from('serving_events').select('photo_path').eq('id', eventId).single()
+  const result = unwrap(await supabase.rpc('hard_delete_serving_event', { p_event_id: eventId }))
+  if (event?.photo_path) await supabase.storage.from(PHOTO_BUCKET).remove([event.photo_path])
+  return result
 }
 
 // --- App settings ---

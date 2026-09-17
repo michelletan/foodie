@@ -36,7 +36,9 @@ export default function BatchDetail() {
     setBatch(batch)
     setUsers(users)
     setCurrentUser(currentUser)
-    setServingEvents(events)
+    setServingEvents(
+      await Promise.all(events.map(async (e) => ({ ...e, photoUrl: await getPhotoUrl(e.photo_path) })))
+    )
 
     const [recipe, children, photoUrl] = await Promise.all([
       getRecipe(batch.recipe_id),
@@ -57,6 +59,10 @@ export default function BatchDetail() {
 
   function userName(userId) {
     return users.find((u) => u.id === userId)?.name ?? 'Unknown'
+  }
+
+  function capitalize(s) {
+    return s ? s[0].toUpperCase() + s.slice(1) : s
   }
 
   async function handleVoidBatch() {
@@ -166,11 +172,15 @@ export default function BatchDetail() {
                 <strong>
                   {event.portions_used} portion{event.portions_used === 1 ? '' : 's'}
                 </strong>{' '}
-                · {event.satisfaction_rating}/5 · {userName(event.served_by)} ·{' '}
+                · {capitalize(event.meal_type)} · {event.satisfaction_rating}/5 · {userName(event.served_by)} ·{' '}
                 {new Date(event.served_at).toLocaleString()}
                 {event.voided_at && ' · voided'}
               </div>
+              {event.description && <div className="serving-notes">{event.description}</div>}
               {event.notes && <div className="serving-notes">{event.notes}</div>}
+              {event.photoUrl && (
+                <img className="serving-photo" src={event.photoUrl} alt="" />
+              )}
               <div className="button-group">
                 {!event.voided_at && (
                   <button

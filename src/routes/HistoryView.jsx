@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listBatches, listChildren, listRecipes, listServingEvents, listUsers } from '../lib/data/index.js'
+import {
+  getPhotoUrl,
+  listBatches,
+  listChildren,
+  listRecipes,
+  listServingEvents,
+  listUsers,
+} from '../lib/data/index.js'
+
+function capitalize(s) {
+  return s ? s[0].toUpperCase() + s.slice(1) : s
+}
 
 // listServingEvents() defaults to includeVoided: false, which is exactly the
 // spec's "voided entries visibly excluded (but not deleted from the
@@ -24,17 +35,24 @@ export default function HistoryView() {
     const recipeById = new Map(recipes.map((r) => [r.id, r]))
     const childById = new Map(children.map((c) => [c.id, c]))
     const userById = new Map(users.map((u) => [u.id, u]))
+    // A serving with no linked batch has no direct way to know the child —
+    // fall back to the one child in the system, matching how the rest of
+    // the app skips child-selection entirely when there's only one (§3.5).
+    const onlyChildName = children.length === 1 ? children[0].name : null
 
     setRows(
-      events.map((event) => {
-        const batch = batchById.get(event.batch_id)
-        return {
-          event,
-          recipeTitle: (batch && recipeById.get(batch.recipe_id)?.title) ?? 'Unknown recipe',
-          childName: (batch && childById.get(batch.child_id)?.name) ?? 'Unknown',
-          servedByName: userById.get(event.served_by)?.name ?? 'Unknown',
-        }
-      })
+      await Promise.all(
+        events.map(async (event) => {
+          const batch = batchById.get(event.batch_id)
+          return {
+            event,
+            title: (batch && recipeById.get(batch.recipe_id)?.title) ?? event.description ?? capitalize(event.meal_type),
+            childName: (batch && childById.get(batch.child_id)?.name) ?? onlyChildName ?? 'Unknown',
+            servedByName: userById.get(event.served_by)?.name ?? 'Unknown',
+            photoUrl: await getPhotoUrl(event.photo_path),
+          }
+        })
+      )
     )
   }
 
@@ -53,20 +71,32 @@ export default function HistoryView() {
 
       {rows.length > 0 && (
         <ul className="history-list">
-          {rows.map(({ event, recipeTitle, childName, servedByName }) => (
-            <li key={event.id}>
-              <Link to={`/batches/${event.batch_id}`}>
+          {rows.map(({ event, title, childName, servedByName, photoUrl }) => {
+            const content = (
+              <>
                 <div className="history-summary">
-                  <strong>{recipeTitle}</strong> · {childName}
+                  <strong>{title}</strong> · {childName}
                 </div>
                 <div className="history-meta">
-                  {event.portions_used} portion{event.portions_used === 1 ? '' : 's'} · {event.satisfaction_rating}
-                  /5 · {servedByName} · {new Date(event.served_at).toLocaleString()}
+                  {event.portions_used != null && (
+                    <>
+                      {event.portions_used} portion{event.portions_used === 1 ? '' : 's'} ·{' '}
+                    </>
+                  )}
+                  {capitalize(event.meal_type)} · {event.satisfaction_rating}/5 · {servedByName} ·{' '}
+                  {new Date(event.served_at).toLocaleString()}
                 </div>
+                {event.description && <div className="history-notes">{event.description}</div>}
                 {event.notes && <div className="history-notes">{event.notes}</div>}
-              </Link>
-            </li>
-          ))}
+                {photoUrl && <img className="serving-photo" src={photoUrl} alt="" />}
+              </>
+            )
+            return (
+              <li key={event.id}>
+                {event.batch_id ? <Link to={`/batches/${event.batch_id}`}>{content}</Link> : <div>{content}</div>}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

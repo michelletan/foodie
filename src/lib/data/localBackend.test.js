@@ -176,25 +176,32 @@ describe('serving a meal (atomic portion math)', () => {
     const batch = await makeBatch()
     await setCurrentUser('u-helper')
 
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 2, satisfactionRating: 5, notes: 'yum' })
+    const event = await serveMeal({
+      batchId: batch.id,
+      portionsUsed: 2,
+      mealType: 'lunch',
+      satisfactionRating: 5,
+      notes: 'yum',
+    })
 
     expect(event.served_by).toBe('u-helper')
     expect(event.portions_used).toBe(2)
+    expect(event.meal_type).toBe('lunch')
     expect((await getBatch(batch.id)).portions_remaining).toBe(4)
   })
 
   it('refuses to serve more portions than remain, without mutating the batch', async () => {
     const batch = await makeBatch({ portionsTotal: 2 })
 
-    await expect(serveMeal({ batchId: batch.id, portionsUsed: 3, satisfactionRating: 3 })).rejects.toThrow(
-      /only 2 portion/i
-    )
+    await expect(
+      serveMeal({ batchId: batch.id, portionsUsed: 3, mealType: 'dinner', satisfactionRating: 3 })
+    ).rejects.toThrow(/only 2 portion/i)
     expect((await getBatch(batch.id)).portions_remaining).toBe(2)
   })
 
   it('voiding a serving event restores the batch portions', async () => {
     const batch = await makeBatch()
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 3, satisfactionRating: 4 })
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 3, mealType: 'breakfast', satisfactionRating: 4 })
     expect((await getBatch(batch.id)).portions_remaining).toBe(3)
 
     await voidServingEvent(event.id)
@@ -205,7 +212,7 @@ describe('serving a meal (atomic portion math)', () => {
 
   it('voiding an already-voided serving event does not double-restore portions', async () => {
     const batch = await makeBatch()
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 3, satisfactionRating: 4 })
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 3, mealType: 'breakfast', satisfactionRating: 4 })
 
     await voidServingEvent(event.id)
     await voidServingEvent(event.id)
@@ -215,8 +222,8 @@ describe('serving a meal (atomic portion math)', () => {
 
   it('excludes voided servings from listServingEvents by default and sorts newest first', async () => {
     const batch = await makeBatch({ portionsTotal: 10 })
-    const first = await serveMeal({ batchId: batch.id, portionsUsed: 1, satisfactionRating: 3 })
-    const second = await serveMeal({ batchId: batch.id, portionsUsed: 1, satisfactionRating: 4 })
+    const first = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'breakfast', satisfactionRating: 3 })
+    const second = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'lunch', satisfactionRating: 4 })
     await voidServingEvent(first.id)
 
     const visible = await listServingEvents({ batchId: batch.id })
@@ -228,9 +235,29 @@ describe('serving a meal (atomic portion math)', () => {
 
   it('hard delete of a serving event requires admin', async () => {
     const batch = await makeBatch()
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, satisfactionRating: 3 })
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'dinner', satisfactionRating: 3 })
     await setCurrentUser('u-helper')
     await expect(hardDeleteServingEvent(event.id)).rejects.toThrow(/admin/i)
+  })
+
+  it('logs milk with no batch, description, or photo', async () => {
+    const event = await serveMeal({ mealType: 'milk', satisfactionRating: 4 })
+    expect(event.batch_id).toBeNull()
+    expect(event.portions_used).toBeNull()
+    expect(event.description).toBeNull()
+  })
+
+  it('logs a free-text serving with no batch', async () => {
+    const event = await serveMeal({ mealType: 'snack', description: 'banana slices', satisfactionRating: 5 })
+    expect(event.batch_id).toBeNull()
+    expect(event.description).toBe('banana slices')
+    expect(await listServingEvents()).toContainEqual(event)
+  })
+
+  it('refuses a non-milk serving with neither a batch nor a description', async () => {
+    await expect(serveMeal({ mealType: 'lunch', satisfactionRating: 3 })).rejects.toThrow(
+      /select from the freezer or describe/i
+    )
   })
 })
 

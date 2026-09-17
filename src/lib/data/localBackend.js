@@ -199,22 +199,51 @@ export async function listServingEvents({ batchId, includeVoided = false } = {})
     .sort((a, b) => new Date(b.served_at) - new Date(a.served_at))
 }
 
-export async function serveMeal({ batchId, portionsUsed, satisfactionRating, notes }) {
+// batchId/photoBlob are both optional — a serving can be a tracked freezer
+// batch, a free-text description, a photo, or (for mealType 'milk') none of
+// the above. ServeForm.jsx enforces the "at least one, unless milk" rule
+// before calling this; kept here too as a defense-in-depth check.
+export async function serveMeal({
+  batchId,
+  portionsUsed,
+  mealType,
+  description,
+  photoBlob,
+  satisfactionRating,
+  notes,
+}) {
   const db = loadDb()
   const user = await getCurrentUser()
-  const batch = db.batches.find((b) => b.id === batchId)
-  if (!batch) throw new Error(`Batch not found: ${batchId}`)
-  if (batch.portions_remaining < portionsUsed) {
-    throw new Error(`Only ${batch.portions_remaining} portion(s) remaining`)
+
+  if (mealType !== 'milk' && !batchId && !description) {
+    throw new Error('Select from the freezer or describe what was served.')
   }
 
-  batch.portions_remaining -= portionsUsed
+  let batch = null
+  if (batchId) {
+    batch = db.batches.find((b) => b.id === batchId)
+    if (!batch) throw new Error(`Batch not found: ${batchId}`)
+    if (batch.portions_remaining < portionsUsed) {
+      throw new Error(`Only ${batch.portions_remaining} portion(s) remaining`)
+    }
+    batch.portions_remaining -= portionsUsed
+  }
+
+  const eventId = id()
+  let photoPath = null
+  if (photoBlob) {
+    photoPath = `servings/${eventId}.jpg`
+    await putPhoto(photoPath, photoBlob)
+  }
 
   const event = {
-    id: id(),
-    batch_id: batchId,
+    id: eventId,
+    batch_id: batchId ?? null,
     served_by: user.id,
-    portions_used: portionsUsed,
+    portions_used: batchId ? portionsUsed : null,
+    meal_type: mealType,
+    description: description ?? null,
+    photo_path: photoPath,
     satisfaction_rating: satisfactionRating,
     notes: notes ?? null,
     served_at: now(),
@@ -232,8 +261,10 @@ export async function voidServingEvent(eventId) {
   if (!event) throw new Error(`Serving event not found: ${eventId}`)
   if (event.voided_at) return event
 
-  const batch = db.batches.find((b) => b.id === event.batch_id)
-  if (batch) batch.portions_remaining += event.portions_used
+  if (event.batch_id) {
+    const batch = db.batches.find((b) => b.id === event.batch_id)
+    if (batch) batch.portions_remaining += event.portions_used
+  }
 
   event.voided_at = now()
   saveDb(db)
@@ -246,6 +277,7 @@ export async function hardDeleteServingEvent(eventId) {
   requireAdmin(user)
   const event = db.serving_events.find((e) => e.id === eventId)
   if (!event) throw new Error(`Serving event not found: ${eventId}`)
+  if (event.photo_path) await deletePhoto(event.photo_path)
   event.deleted_at = now()
   saveDb(db)
   return event
