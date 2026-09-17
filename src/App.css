@@ -21,30 +21,43 @@
   border-radius: 7px;
 }
 
-.app-header nav {
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
   display: flex;
-  gap: 16px;
-  order: 3;
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 4px max(0px, env(safe-area-inset-right)) env(safe-area-inset-bottom)
+    max(0px, env(safe-area-inset-left));
 }
 
-.app-header nav::-webkit-scrollbar {
-  display: none;
-}
-
-.app-header nav a {
+.bottom-nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
   text-decoration: none;
   color: var(--text);
+  font-size: 11px;
   font-weight: 600;
-  white-space: nowrap;
-  padding: 6px 0;
 }
 
-.app-header nav a.active {
-  color: var(--text-h);
+.bottom-nav-tab svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bottom-nav-tab.active {
+  color: var(--accent);
 }
 
 .user-switcher {

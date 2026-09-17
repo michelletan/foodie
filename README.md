@@ -89,7 +89,7 @@ Pushing to `main` builds and deploys to GitHub Pages via [`.github/workflows/dep
 - [x] Recipe `format`: `structured` (fields above) or `freetext` (paste the whole recipe as one block, stored/shown verbatim) — chosen per recipe via a toggle in the form
 
 ### M3 — Batch logging (helper)
-- [x] Recipe picker → portions-made input → camera capture → client-side resize/compress (≤1000px, JPEG/WebP ~70-80%) → preview/retake → save (`batches/new`, `batches/:id`)
+- [x] Recipe picker → portions-made input → camera capture (optional) → client-side resize/compress (≤1000px, JPEG/WebP ~70-80%) → preview/retake → save (`batches/new`, `batches/:id`)
 - [x] Photo fetch abstracted behind `getPhotoUrl()` (object URL locally; will be a signed URL once M1's `supabaseBackend.js` lands — never store/display raw public URLs)
 
 ### M4 — Serving flow (helper)

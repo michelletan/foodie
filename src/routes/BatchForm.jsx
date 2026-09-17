@@ -74,7 +74,6 @@ export default function BatchForm() {
     if (!childId) return setError('Select a child.')
     if (!Number.isInteger(portions) || portions < 1) return setError('Enter a valid number of portions.')
     if (!portionSize.trim()) return setError('Enter or select a portion size.')
-    if (!photoBlob) return setError('Take a photo of the batch.')
 
     setSaving(true)
     try {
@@ -161,7 +160,7 @@ export default function BatchForm() {
         </div>
 
         <div className="field">
-          <label>Photo</label>
+          <label>Photo (optional)</label>
           <input
             ref={fileInputRef}
             type="file"
