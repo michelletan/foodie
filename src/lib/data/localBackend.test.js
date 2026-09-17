@@ -134,6 +134,15 @@ describe('batches', () => {
     expect(await getPhotoUrl(batch.photo_path)).toBe('blob:mock-url')
   })
 
+  it('defaults expires_at to null, but stores it when given', async () => {
+    const withoutExpiry = await makeBatch()
+    expect(withoutExpiry.expires_at).toBeNull()
+
+    const expiresAt = new Date('2026-12-01').toISOString()
+    const withExpiry = await makeBatch({ expiresAt })
+    expect((await getBatch(withExpiry.id)).expires_at).toBe(expiresAt)
+  })
+
   it('filters listBatches by child and recipe', async () => {
     const batch = await makeBatch()
     const children = await listChildren()

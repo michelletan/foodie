@@ -98,7 +98,7 @@ export async function getBatch(batchId) {
   return unwrap(await supabase.from('batches').select('*').eq('id', batchId).single())
 }
 
-export async function createBatch({ recipeId, childId, portionsTotal, portionSize, photoBlob }) {
+export async function createBatch({ recipeId, childId, portionsTotal, portionSize, expiresAt, photoBlob }) {
   const batchId = crypto.randomUUID()
   const photoPath = `batches/${batchId}.jpg`
 
@@ -119,6 +119,7 @@ export async function createBatch({ recipeId, childId, portionsTotal, portionSiz
         portions_total: portionsTotal,
         portions_remaining: portionsTotal,
         portion_size: portionSize,
+        expires_at: expiresAt ?? null,
         photo_path: photoBlob ? photoPath : null,
       })
       .select()

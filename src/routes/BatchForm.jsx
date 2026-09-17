@@ -11,6 +11,19 @@ const QUICK_PORTION_SIZES = [
   { label: '2 tbsp (30ml)', value: '30ml' },
 ]
 
+// yyyy-mm-dd, for direct use as an <input type="date"> value.
+function monthsFromToday(n) {
+  const d = new Date()
+  d.setMonth(d.getMonth() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+const QUICK_EXPIRY_OPTIONS = [
+  { label: '1 month', value: monthsFromToday(1) },
+  { label: '2 months', value: monthsFromToday(2) },
+  { label: '3 months', value: monthsFromToday(3) },
+]
+
 export default function BatchForm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -22,6 +35,7 @@ export default function BatchForm() {
   const [childId, setChildId] = useState('')
   const [portionsTotal, setPortionsTotal] = useState('')
   const [portionSize, setPortionSize] = useState('')
+  const [expiresAt, setExpiresAt] = useState(QUICK_EXPIRY_OPTIONS[0].value)
   const [photoBlob, setPhotoBlob] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [compressing, setCompressing] = useState(false)
@@ -74,6 +88,7 @@ export default function BatchForm() {
     if (!childId) return setError('Select a child.')
     if (!Number.isInteger(portions) || portions < 1) return setError('Enter a valid number of portions.')
     if (!portionSize.trim()) return setError('Enter or select a portion size.')
+    if (!expiresAt) return setError('Select an expiry date.')
 
     setSaving(true)
     try {
@@ -82,6 +97,7 @@ export default function BatchForm() {
         childId,
         portionsTotal: portions,
         portionSize: portionSize.trim(),
+        expiresAt: new Date(expiresAt).toISOString(),
         photoBlob,
       })
       navigate(`/batches/${batch.id}`)
@@ -154,6 +170,28 @@ export default function BatchForm() {
                 onClick={() => setPortionSize(size.value)}
               >
                 {size.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="expiresAt">Expiry date</label>
+          <input
+            id="expiresAt"
+            type="date"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
+          />
+          <div className="quick-options">
+            {QUICK_EXPIRY_OPTIONS.map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                className={`quick-option${expiresAt === opt.value ? ' selected' : ''}`}
+                onClick={() => setExpiresAt(opt.value)}
+              >
+                {opt.label}
               </button>
             ))}
           </div>

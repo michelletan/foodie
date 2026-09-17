@@ -143,6 +143,8 @@ export default function BatchDetail() {
         </dd>
         <dt>Portion size</dt>
         <dd>{batch.portion_size ?? '—'}</dd>
+        <dt>Expires</dt>
+        <dd>{batch.expires_at ? new Date(batch.expires_at).toLocaleDateString() : '—'}</dd>
         <dt>Prepared by</dt>
         <dd>{userName(batch.prepared_by)}</dd>
         <dt>Prepared</dt>

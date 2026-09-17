@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import {
-  getPhotoUrl,
-  listBatches,
-  listChildren,
-  listRecipes,
-  listServingEvents,
-  listUsers,
-} from '../lib/data/index.js'
+import { getPhotoUrl, listBatches, listChildren, listRecipes, listServingEvents, listUsers } from '../lib/data/index.js'
 
 function capitalize(s) {
   return s ? s[0].toUpperCase() + s.slice(1) : s
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yy = String(d.getFullYear()).slice(-2)
+  return `${dd}/${mm}/${yy}`
+}
+
+function formatTime(dateStr) {
+  const d = new Date(dateStr)
+  let h = d.getHours()
+  const m = String(d.getMinutes()).padStart(2, '0')
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12 || 12
+  return `${String(h).padStart(2, '0')}:${m} ${ampm}`
 }
 
 const PERIODS = [
@@ -66,7 +75,6 @@ function groupRows(rows) {
         mealType: row.event.meal_type,
         rating: row.event.satisfaction_rating,
         notes: row.event.notes ?? null,
-        childName: row.childName,
         servedAt: row.event.served_at,
         lastServedAt: row.event.served_at,
         photoUrl: row.photoUrl,
@@ -84,6 +92,8 @@ function groupRows(rows) {
 // here and call refresh() on change instead of only fetching once on mount.
 export default function HistoryView() {
   const [period, setPeriod] = useState('week')
+  const [children, setChildren] = useState(null)
+  const [childFilter, setChildFilter] = useState('')
   const [rows, setRows] = useState(null)
   const [error, setError] = useState(null)
 
@@ -98,13 +108,14 @@ export default function HistoryView() {
 
     const batchById = new Map(batches.map((b) => [b.id, b]))
     const recipeById = new Map(recipes.map((r) => [r.id, r]))
-    const childById = new Map(children.map((c) => [c.id, c]))
     const userById = new Map(users.map((u) => [u.id, u]))
-    // A serving with no linked batch has no direct way to know the child —
-    // fall back to the one child in the system, matching how the rest of
-    // the app skips child-selection entirely when there's only one (§3.5).
-    const onlyChildName = children.length === 1 ? children[0].name : null
+    // A serving with no linked batch has no direct way to know the child.
+    // With just one child in the system it's unambiguous; with more than
+    // one it's genuinely unknown, so it's left out of a specific-child
+    // filter (still shows under "All children").
+    const onlyChildId = children.length === 1 ? children[0].id : null
 
+    setChildren(children)
     setRows(
       await Promise.all(
         events.map(async (event) => {
@@ -112,7 +123,7 @@ export default function HistoryView() {
           return {
             event,
             title: (batch && recipeById.get(batch.recipe_id)?.title) ?? event.description ?? capitalize(event.meal_type),
-            childName: (batch && childById.get(batch.child_id)?.name) ?? onlyChildName ?? 'Unknown',
+            childId: batch?.child_id ?? onlyChildId,
             servedByName: userById.get(event.served_by)?.name ?? 'Unknown',
             photoUrl: await getPhotoUrl(event.photo_path),
           }
@@ -126,11 +137,25 @@ export default function HistoryView() {
     refresh().catch((e) => setError(e.message))
   }, [period])
 
-  const groups = rows ? groupRows(rows) : null
+  const filteredRows = rows && childFilter ? rows.filter((r) => r.childId === childFilter) : rows
+  const groups = filteredRows ? groupRows(filteredRows) : null
 
   return (
     <div>
-      <h2>History</h2>
+      <div className="page-header">
+        <h2>History</h2>
+        {children && children.length > 1 && (
+          <select value={childFilter} onChange={(e) => setChildFilter(e.target.value)}>
+            <option value="">All children</option>
+            {children.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {children && children.length === 1 && <span className="history-child-label">{children[0].name}</span>}
+      </div>
 
       <div className="quick-options">
         <button
@@ -164,38 +189,28 @@ export default function HistoryView() {
       {groups && groups.length > 0 && (
         <ul className="history-list">
           {groups.map((group) => {
-            const totalPortions = group.items.reduce((sum, i) => sum + (i.event.portions_used ?? 0), 0)
-            const batchLinks = group.items.filter((i) => i.event.batch_id)
+            const batchNames = group.items.filter((i) => i.event.batch_id).map((i) => i.title)
+            const freeText = [
+              ...group.items.filter((i) => !i.event.batch_id && i.event.description).map((i) => i.event.description),
+              group.notes,
+            ].filter(Boolean)
 
             return (
               <li key={group.id}>
                 <div>
                   <div className="history-summary">
-                    <strong>{group.items.map((i) => i.title).join(' + ')}</strong> · {group.childName}
+                    {formatDate(group.servedAt)} - {capitalize(group.mealType)}
                   </div>
                   <div className="history-meta">
-                    {totalPortions > 0 && (
-                      <>
-                        {totalPortions} portion{totalPortions === 1 ? '' : 's'} ·{' '}
-                      </>
-                    )}
-                    {capitalize(group.mealType)} · {group.rating}/5 · {group.servedByName} ·{' '}
-                    {new Date(group.servedAt).toLocaleString()}
+                    {group.servedByName} at {formatTime(group.servedAt)} · {group.rating}/5
                   </div>
-                  {group.items.map(
-                    (i) => i.event.description && <div key={i.event.id} className="history-notes">{i.event.description}</div>
-                  )}
-                  {group.notes && <div className="history-notes">{group.notes}</div>}
-                  {group.photoUrl && <img className="serving-photo" src={group.photoUrl} alt="" />}
-                  {batchLinks.length > 0 && (
-                    <div className="history-batch-links">
-                      {batchLinks.map((i) => (
-                        <Link key={i.event.batch_id} to={`/batches/${i.event.batch_id}`}>
-                          {i.title}
-                        </Link>
-                      ))}
+                  {batchNames.length > 0 && <div className="history-notes">{batchNames.join(', ')}</div>}
+                  {freeText.map((text, i) => (
+                    <div key={i} className="history-notes">
+                      {text}
                     </div>
-                  )}
+                  ))}
+                  {group.photoUrl && <img className="serving-photo" src={group.photoUrl} alt="" />}
                 </div>
               </li>
             )

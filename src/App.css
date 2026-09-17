@@ -467,6 +467,10 @@
   margin: 0 0 8px;
 }
 
+.freezer-recipe-group h4.freezer-expiry-overdue {
+  color: var(--danger);
+}
+
 .batch-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -510,27 +514,29 @@
   gap: 8px;
 }
 
-.history-list li a,
 .history-list li > div {
   display: block;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 16px;
-  text-decoration: none;
   color: var(--text-h);
-}
-
-.history-list li a:hover {
-  border-color: var(--accent);
 }
 
 .history-summary {
   margin-bottom: 2px;
+  font-weight: 700;
+  color: var(--text-h);
 }
 
 .history-meta {
   font-size: 14px;
   color: var(--text);
+}
+
+.history-child-label {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 600;
 }
 
 .history-notes {
@@ -539,23 +545,3 @@
   margin-top: 4px;
 }
 
-.history-batch-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.history-batch-links a {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  text-decoration: none;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 10px;
-}
-
-.history-batch-links a:hover {
-  border-color: var(--accent);
-}
