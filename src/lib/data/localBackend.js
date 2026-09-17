@@ -187,13 +187,14 @@ export async function hardDeleteBatch(batchId) {
 
 // --- Serving events ---
 
-export async function listServingEvents({ batchId, includeVoided = false } = {}) {
+export async function listServingEvents({ batchId, includeVoided = false, since } = {}) {
   const db = loadDb()
   return db.serving_events
     .filter((e) => {
       if (!includeVoided && e.voided_at) return false
       if (e.deleted_at) return false
       if (batchId && e.batch_id !== batchId) return false
+      if (since && new Date(e.served_at) < new Date(since)) return false
       return true
     })
     .sort((a, b) => new Date(b.served_at) - new Date(a.served_at))

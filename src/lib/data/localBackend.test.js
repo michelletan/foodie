@@ -233,6 +233,17 @@ describe('serving a meal (atomic portion math)', () => {
     expect(all).toHaveLength(2)
   })
 
+  it('filters servings by since', async () => {
+    const batch = await makeBatch()
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'lunch', satisfactionRating: 4 })
+
+    const past = new Date(Date.now() - 60_000).toISOString()
+    const future = new Date(Date.now() + 60_000).toISOString()
+
+    expect(await listServingEvents({ since: past })).toContainEqual(event)
+    expect(await listServingEvents({ since: future })).not.toContainEqual(event)
+  })
+
   it('hard delete of a serving event requires admin', async () => {
     const batch = await makeBatch()
     const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'dinner', satisfactionRating: 3 })

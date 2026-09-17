@@ -139,7 +139,7 @@ export async function hardDeleteBatch(batchId) {
 
 // --- Serving events ---
 
-export async function listServingEvents({ batchId, includeVoided = false } = {}) {
+export async function listServingEvents({ batchId, includeVoided = false, since } = {}) {
   let query = supabase
     .from('serving_events')
     .select('*')
@@ -147,6 +147,7 @@ export async function listServingEvents({ batchId, includeVoided = false } = {})
     .order('served_at', { ascending: false })
   if (!includeVoided) query = query.is('voided_at', null)
   if (batchId) query = query.eq('batch_id', batchId)
+  if (since) query = query.gte('served_at', since)
   return unwrap(await query)
 }
 

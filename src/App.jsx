@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import logo from './assets/logo.svg'
 import BottomNav from './components/BottomNav.jsx'
-import SignOutButton from './components/SignOutButton.jsx'
+import UserMenu from './components/UserMenu.jsx'
 import UserSwitcher from './components/UserSwitcher.jsx'
 import './App.css'
 
@@ -14,7 +14,7 @@ function App() {
           foodie
         </h1>
         <UserSwitcher />
-        <SignOutButton />
+        <UserMenu />
       </header>
       <main>
         <Outlet />

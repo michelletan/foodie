@@ -13,18 +13,32 @@ function capitalize(s) {
   return s ? s[0].toUpperCase() + s.slice(1) : s
 }
 
+const PERIODS = [
+  { value: 'week', label: 'Past week', days: 7 },
+  { value: 'month', label: 'Past month', days: 30 },
+  { value: '3months', label: 'Past 3 months', days: 90 },
+  { value: 'all', label: 'All time', days: null },
+]
+
+function sinceFor(period) {
+  const days = PERIODS.find((p) => p.value === period)?.days
+  if (!days) return undefined
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+}
+
 // listServingEvents() defaults to includeVoided: false, which is exactly the
 // spec's "voided entries visibly excluded (but not deleted from the
 // record)" — voided rows just don't appear here, not removed from storage.
 // Once M1 lands, wire a Supabase Realtime subscription on `serving_events`
 // here and call refresh() on change instead of only fetching once on mount.
 export default function HistoryView() {
+  const [period, setPeriod] = useState('week')
   const [rows, setRows] = useState(null)
   const [error, setError] = useState(null)
 
   async function refresh() {
     const [events, batches, recipes, children, users] = await Promise.all([
-      listServingEvents(),
+      listServingEvents({ since: sinceFor(period) }),
       listBatches({ includeVoided: true }),
       listRecipes(),
       listChildren(),
@@ -57,19 +71,33 @@ export default function HistoryView() {
   }
 
   useEffect(() => {
+    setRows(null)
     refresh().catch((e) => setError(e.message))
-  }, [])
-
-  if (error) return <p className="error">{error}</p>
-  if (!rows) return <p>Loading…</p>
+  }, [period])
 
   return (
     <div>
       <h2>History</h2>
 
-      {rows.length === 0 && <p className="empty-state">No servings logged yet.</p>}
+      <div className="quick-options">
+        {PERIODS.map((p) => (
+          <button
+            key={p.value}
+            type="button"
+            className={`quick-option${period === p.value ? ' selected' : ''}`}
+            onClick={() => setPeriod(p.value)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
 
-      {rows.length > 0 && (
+      {error && <p className="error">{error}</p>}
+      {!error && !rows && <p>Loading…</p>}
+
+      {rows && rows.length === 0 && <p className="empty-state">No servings logged yet.</p>}
+
+      {rows && rows.length > 0 && (
         <ul className="history-list">
           {rows.map(({ event, title, childName, servedByName, photoUrl }) => {
             const content = (
