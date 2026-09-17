@@ -2,7 +2,7 @@
 
 Shared toddler meal-prep tracker for two parents and a helper. Full spec: see `Meal plan app.md` in the "baby meal prep" project notes.
 
-**Stack:** React + Vite (PWA), Supabase (Postgres + Auth + Storage + Realtime + Edge Functions), Telegram bot for notifications. Will deploy to GitHub Pages once the app is ready (see Deploy below).
+**Stack:** React + Vite (PWA), Supabase (Postgres + Auth + Storage + Realtime + Edge Functions), Telegram bot for notifications, deployed to GitHub Pages.
 
 ## Local dev
 
@@ -60,7 +60,10 @@ Node 22+'s experimental built-in `localStorage` shadows jsdom's working one with
 
 ## Deploy
 
-Not set up yet — deliberately deferred until the app is further along. When it's time, re-add a GitHub Actions workflow that builds and deploys to GitHub Pages on push to `main`, with `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` as repo secrets and Pages source set to "GitHub Actions".
+Pushing to `main` builds and deploys to GitHub Pages via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). One-time setup needed in the GitHub repo settings before the first deploy will actually work:
+- **Settings → Pages → Source:** GitHub Actions
+- **Settings → Secrets and variables → Actions → Secrets:** add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+- **Settings → Secrets and variables → Actions → Variables:** add `VITE_DATA_BACKEND` set to `supabase` once your Supabase project is confirmed working — until then, leave it unset and the deployed build defaults to the `local` backend (each visitor gets their own private browser-only data, not shared across the 3 of you)
 
 ## Roadmap
 
@@ -68,7 +71,7 @@ Not set up yet — deliberately deferred until the app is further along. When it
 - [x] Init frontend: React + Vite
 - [x] Data layer abstraction (`src/lib/data/`) with a Supabase-free local backend, so M2-M6 can be built before M1 lands
 - [ ] Supabase project (free tier) — account created; project itself not yet (see "Supabase setup" below)
-- [ ] GitHub Pages deploy pipeline (deliberately deferred until the app is ready — see Deploy below)
+- [x] GitHub Pages deploy pipeline (GitHub Actions build+deploy on push to main — needs one-time repo settings, see Deploy below)
 - [x] Env/config for Supabase URL+anon key in a static-safe way
 
 ### M1 — Schema & auth
