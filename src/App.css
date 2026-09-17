@@ -9,8 +9,15 @@
 }
 
 .app-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 22px;
   margin: 0;
+}
+
+.app-header h1 img {
+  border-radius: 7px;
 }
 
 .app-header nav {
