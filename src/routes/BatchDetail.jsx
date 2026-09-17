@@ -67,7 +67,7 @@ export default function BatchDetail() {
   }
 
   async function handleVoidBatch() {
-    if (!confirm('Void this batch? It will be hidden from the freezer view but kept in the record.')) return
+    if (!confirm('Delete this batch? It will be hidden from the freezer view but kept in the record.')) return
     try {
       await voidBatch(batch.id)
       await refresh()
@@ -102,7 +102,7 @@ export default function BatchDetail() {
   }
 
   async function handleVoidServingEvent(eventId) {
-    if (!confirm('Void this serving? Its portions will be added back to the batch.')) return
+    if (!confirm('Delete this serving? Its portions will be added back to the batch.')) return
     try {
       await voidServingEvent(eventId)
       await refresh()
@@ -142,7 +142,7 @@ export default function BatchDetail() {
         </div>
       </div>
 
-      {batch.voided_at && <p className="error">This batch has been voided.</p>}
+      {batch.voided_at && <p className="error">This batch has been deleted.</p>}
 
       {photoUrl && (
         <div className="batch-photo">
@@ -170,7 +170,7 @@ export default function BatchDetail() {
       <div className="button-group">
         {!batch.voided_at && (
           <button type="button" className="button secondary" onClick={handleVoidBatch}>
-            Void batch
+            Delete
           </button>
         )}
         {batch.portions_remaining > 0 && !batch.voided_at && (
@@ -178,12 +178,19 @@ export default function BatchDetail() {
             Throw out
           </button>
         )}
-        {isAdmin && (
+        {isAdmin && servingEvents.length === 0 && (
           <button type="button" className="button danger" onClick={handleHardDeleteBatch}>
             Delete permanently
           </button>
         )}
       </div>
+
+      {isAdmin && servingEvents.length > 0 && (
+        <p className="hint">
+          Delete permanently is only for batches that were mistakenly created and never served from — this one has
+          servings logged below, so use delete or throw out instead.
+        </p>
+      )}
 
       <h3>Servings</h3>
       {servingEvents.length === 0 && <p className="empty-state">No servings logged yet.</p>}
@@ -197,7 +204,7 @@ export default function BatchDetail() {
                 </strong>{' '}
                 · {capitalize(event.meal_type)} · {event.satisfaction_rating}/5 · {userName(event.served_by)} ·{' '}
                 {new Date(event.served_at).toLocaleString()}
-                {event.voided_at && ' · voided'}
+                {event.voided_at && ' · deleted'}
               </div>
               {event.description && <div className="serving-notes">{event.description}</div>}
               {event.notes && <div className="serving-notes">{event.notes}</div>}
@@ -211,7 +218,7 @@ export default function BatchDetail() {
                     className="button secondary"
                     onClick={() => handleVoidServingEvent(event.id)}
                   >
-                    Void
+                    Delete
                   </button>
                 )}
                 {isAdmin && (
@@ -220,7 +227,7 @@ export default function BatchDetail() {
                     className="button danger"
                     onClick={() => handleHardDeleteServingEvent(event.id)}
                   >
-                    Delete
+                    Delete permanently
                   </button>
                 )}
               </div>

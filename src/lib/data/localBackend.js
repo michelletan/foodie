@@ -185,12 +185,20 @@ export async function throwOutBatch(batchId) {
   return batch
 }
 
+// Reserved for batches that were mistakenly created and never actually used
+// — once anything has been served from a batch (even if later voided),
+// that history needs the batch to stick around so it stays legible; void it
+// or throw out the rest instead.
 export async function hardDeleteBatch(batchId) {
   const db = loadDb()
   const user = await getCurrentUser()
   requireAdmin(user)
   const batch = db.batches.find((b) => b.id === batchId)
   if (!batch) throw new Error(`Batch not found: ${batchId}`)
+  const hasServings = db.serving_events.some((e) => e.batch_id === batchId && !e.deleted_at)
+  if (hasServings) {
+    throw new Error('This batch has servings logged against it — void it instead of deleting.')
+  }
   if (batch.photo_path) await deletePhoto(batch.photo_path)
   batch.deleted_at = now()
   saveDb(db)

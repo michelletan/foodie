@@ -184,6 +184,16 @@ describe('batches', () => {
     await expect(hardDeleteBatch(batch.id)).rejects.toThrow(/admin/i)
   })
 
+  it('refuses to hard delete a batch that has servings logged against it, even if voided', async () => {
+    const batch = await makeBatch()
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'lunch', satisfactionRating: 4 })
+
+    await expect(hardDeleteBatch(batch.id)).rejects.toThrow(/servings logged/i)
+
+    await voidServingEvent(event.id)
+    await expect(hardDeleteBatch(batch.id)).rejects.toThrow(/servings logged/i)
+  })
+
   it('hard delete removes the photo and hides the batch from listings, but never purges the record', async () => {
     const photoBlob = new Blob(['fake jpeg bytes'], { type: 'image/jpeg' })
     const batch = await makeBatch({ photoBlob })

@@ -131,6 +131,11 @@ textarea {
   font-size: 14px;
 }
 
+.hint {
+  color: var(--text);
+  font-size: 14px;
+}
+
 .login-screen {
   display: flex;
   flex-direction: column;
