@@ -35,6 +35,48 @@ function sinceFor(period) {
   return days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString() : undefined
 }
 
+// ServeForm.jsx saves one meal that spans multiple freezer batches as
+// several serving_event rows (one per batch, no shared "meal" id in the
+// schema) — see its handleSubmit for why. Re-group them here for display:
+// rows sharing who/what/how-it-went, saved within a few seconds of each
+// other, are almost certainly one "Save" click, not a coincidence — a real
+// second meal logged that close together with identical rating/notes is
+// vanishingly unlikely for how this app gets used.
+const GROUP_WINDOW_MS = 10_000
+
+function groupRows(rows) {
+  const groups = []
+  for (const row of rows) {
+    const last = groups[groups.length - 1]
+    const sameMeal =
+      last &&
+      last.servedByName === row.servedByName &&
+      last.mealType === row.event.meal_type &&
+      last.rating === row.event.satisfaction_rating &&
+      last.notes === (row.event.notes ?? null) &&
+      Math.abs(new Date(last.lastServedAt) - new Date(row.event.served_at)) <= GROUP_WINDOW_MS
+    if (sameMeal) {
+      last.items.push(row)
+      last.lastServedAt = row.event.served_at
+      if (!last.photoUrl && row.photoUrl) last.photoUrl = row.photoUrl
+    } else {
+      groups.push({
+        id: row.event.id,
+        servedByName: row.servedByName,
+        mealType: row.event.meal_type,
+        rating: row.event.satisfaction_rating,
+        notes: row.event.notes ?? null,
+        childName: row.childName,
+        servedAt: row.event.served_at,
+        lastServedAt: row.event.served_at,
+        photoUrl: row.photoUrl,
+        items: [row],
+      })
+    }
+  }
+  return groups
+}
+
 // listServingEvents() defaults to includeVoided: false, which is exactly the
 // spec's "voided entries visibly excluded (but not deleted from the
 // record)" — voided rows just don't appear here, not removed from storage.
@@ -84,53 +126,77 @@ export default function HistoryView() {
     refresh().catch((e) => setError(e.message))
   }, [period])
 
+  const groups = rows ? groupRows(rows) : null
+
   return (
     <div>
       <h2>History</h2>
 
       <div className="quick-options">
-        {PERIODS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            className={`quick-option${period === p.value ? ' selected' : ''}`}
-            onClick={() => setPeriod(p.value)}
-          >
-            {p.label}
-          </button>
-        ))}
+        <button
+          type="button"
+          className={`quick-option${period === 'week' ? ' selected' : ''}`}
+          onClick={() => setPeriod('week')}
+        >
+          Past week
+        </button>
+        <select
+          className={`quick-option${period !== 'week' ? ' selected' : ''}`}
+          value={period === 'week' ? '' : period}
+          onChange={(e) => setPeriod(e.target.value)}
+        >
+          <option value="" disabled>
+            More…
+          </option>
+          {PERIODS.filter((p) => p.value !== 'week').map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && <p className="error">{error}</p>}
-      {!error && !rows && <p>Loading…</p>}
+      {!error && !groups && <p>Loading…</p>}
 
-      {rows && rows.length === 0 && <p className="empty-state">No servings logged yet.</p>}
+      {groups && groups.length === 0 && <p className="empty-state">No servings logged yet.</p>}
 
-      {rows && rows.length > 0 && (
+      {groups && groups.length > 0 && (
         <ul className="history-list">
-          {rows.map(({ event, title, childName, servedByName, photoUrl }) => {
-            const content = (
-              <>
-                <div className="history-summary">
-                  <strong>{title}</strong> · {childName}
-                </div>
-                <div className="history-meta">
-                  {event.portions_used != null && (
-                    <>
-                      {event.portions_used} portion{event.portions_used === 1 ? '' : 's'} ·{' '}
-                    </>
-                  )}
-                  {capitalize(event.meal_type)} · {event.satisfaction_rating}/5 · {servedByName} ·{' '}
-                  {new Date(event.served_at).toLocaleString()}
-                </div>
-                {event.description && <div className="history-notes">{event.description}</div>}
-                {event.notes && <div className="history-notes">{event.notes}</div>}
-                {photoUrl && <img className="serving-photo" src={photoUrl} alt="" />}
-              </>
-            )
+          {groups.map((group) => {
+            const totalPortions = group.items.reduce((sum, i) => sum + (i.event.portions_used ?? 0), 0)
+            const batchLinks = group.items.filter((i) => i.event.batch_id)
+
             return (
-              <li key={event.id}>
-                {event.batch_id ? <Link to={`/batches/${event.batch_id}`}>{content}</Link> : <div>{content}</div>}
+              <li key={group.id}>
+                <div>
+                  <div className="history-summary">
+                    <strong>{group.items.map((i) => i.title).join(' + ')}</strong> · {group.childName}
+                  </div>
+                  <div className="history-meta">
+                    {totalPortions > 0 && (
+                      <>
+                        {totalPortions} portion{totalPortions === 1 ? '' : 's'} ·{' '}
+                      </>
+                    )}
+                    {capitalize(group.mealType)} · {group.rating}/5 · {group.servedByName} ·{' '}
+                    {new Date(group.servedAt).toLocaleString()}
+                  </div>
+                  {group.items.map(
+                    (i) => i.event.description && <div key={i.event.id} className="history-notes">{i.event.description}</div>
+                  )}
+                  {group.notes && <div className="history-notes">{group.notes}</div>}
+                  {group.photoUrl && <img className="serving-photo" src={group.photoUrl} alt="" />}
+                  {batchLinks.length > 0 && (
+                    <div className="history-batch-links">
+                      {batchLinks.map((i) => (
+                        <Link key={i.event.batch_id} to={`/batches/${i.event.batch_id}`}>
+                          {i.title}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </li>
             )
           })}
