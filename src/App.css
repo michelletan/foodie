@@ -2,8 +2,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 20px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 24px;
 }
@@ -23,12 +24,23 @@
 .app-header nav {
   display: flex;
   gap: 16px;
+  order: 3;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.app-header nav::-webkit-scrollbar {
+  display: none;
 }
 
 .app-header nav a {
   text-decoration: none;
   color: var(--text);
   font-weight: 600;
+  white-space: nowrap;
+  padding: 6px 0;
 }
 
 .app-header nav a.active {
@@ -177,9 +189,9 @@
 }
 
 .quick-option.selected {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--complementary-bg);
+  border-color: var(--complementary);
+  color: var(--complementary);
   font-weight: 600;
 }
 
@@ -252,9 +264,9 @@
 }
 
 .rating-option.selected {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--complementary-bg);
+  border-color: var(--complementary);
+  color: var(--complementary);
 }
 
 .batch-detail > .button-group {

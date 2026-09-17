@@ -38,9 +38,19 @@ export async function getSession() {
   return data.session
 }
 
-export async function signIn({ email, password }) {
+// Supabase Auth has no native username sign-in, so this resolves the
+// username to its account email first (via the email_for_username RPC —
+// see 0006_username_login.sql) and signs in with that. Both failure modes
+// (unknown username, wrong password) report the same generic error so a
+// login attempt can't be used to probe which usernames exist.
+export async function signIn({ username, password }) {
+  const { data: email, error: lookupError } = await supabase.rpc('email_for_username', {
+    p_username: username,
+  })
+  if (lookupError || !email) throw new Error('Incorrect username or password')
+
   const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error('Incorrect username or password')
 }
 
 export async function signOut() {

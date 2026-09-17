@@ -1,14 +1,20 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --bg-subtle: #f7f6f3;
+  --text: #786f6a;
+  --text-h: #1f1815;
+  --bg: #fffaf6;
+  --bg-subtle: #fbf1e6;
   --border: #e5e4e7;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent: #ff922b;
+  --accent-strong: #e8590c;
+  --accent-bg: rgba(255, 146, 43, 0.12);
+  /* Complementary to coral on the color wheel — used only for "this is
+     selected" states, so it reads as a distinct signal from the coral
+     "do this" buttons/links. */
+  --complementary: #1c7ed6;
+  --complementary-bg: rgba(28, 126, 214, 0.1);
   --danger: #c53030;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: 'Space Grotesk', system-ui, 'Segoe UI', Roboto, sans-serif;
   font: 16px/145% var(--sans);
   color-scheme: light dark;
   color: var(--text-h);
@@ -24,8 +30,11 @@
     --bg: #16171d;
     --bg-subtle: #1c1d24;
     --border: #2e303a;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent: #ffa94d;
+    --accent-strong: #ffc078;
+    --accent-bg: rgba(255, 169, 77, 0.15);
+    --complementary: #74c0fc;
+    --complementary-bg: rgba(116, 192, 252, 0.15);
     --danger: #f87171;
   }
 }
@@ -42,7 +51,8 @@ body {
   max-width: 640px;
   margin: 0 auto;
   min-height: 100svh;
-  padding: 0 16px 48px;
+  padding: 0 max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left));
+  padding-top: env(safe-area-inset-top);
 }
 
 h1,
