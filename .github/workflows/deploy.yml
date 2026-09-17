@@ -24,6 +24,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Debug env vars (temporary — remove once secrets are confirmed)
+        run: |
+          echo "VITE_DATA_BACKEND=$VITE_DATA_BACKEND"
+          echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL"
+          echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY"
+        env:
+          VITE_DATA_BACKEND: ${{ vars.VITE_DATA_BACKEND }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - run: npm run build
         env:
           VITE_DATA_BACKEND: ${{ vars.VITE_DATA_BACKEND }}
