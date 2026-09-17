@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import logo from '../assets/logo.svg'
 import { getPhotoUrl, listBatches, listChildren, listRecipes } from '../lib/data/index.js'
 
 // Batches with portions_remaining === 0 — fully served, or thrown out via
@@ -60,7 +61,13 @@ export default function UsedBatchesView() {
           <div className="batch-cards">
             {batches.map((batch) => (
               <Link key={batch.id} to={`/batches/${batch.id}`} className="batch-card">
-                {batch.photoUrl && <img src={batch.photoUrl} alt="" />}
+                {batch.photoUrl ? (
+                  <img src={batch.photoUrl} alt="" />
+                ) : (
+                  <div className="batch-card-placeholder">
+                    <img src={logo} alt="" width="32" height="32" />
+                  </div>
+                )}
                 <div className="batch-card-info">
                   <strong>{batch.recipe?.title ?? 'Unknown recipe'}</strong>
                   <span>{new Date(batch.prepared_at).toLocaleDateString()}</span>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import logo from '../assets/logo.svg'
 import { getPhotoUrl, listBatches, listChildren, listRecipes } from '../lib/data/index.js'
 
 // yyyy-mm-dd (date-only, no time) so batches expiring on the same calendar
@@ -126,7 +127,13 @@ export default function FreezerView() {
               <div className="batch-cards">
                 {sectionBatches.map((batch) => (
                   <Link key={batch.id} to={`/batches/${batch.id}`} className="batch-card">
-                    {batch.photoUrl && <img src={batch.photoUrl} alt="" />}
+                    {batch.photoUrl ? (
+                      <img src={batch.photoUrl} alt="" />
+                    ) : (
+                      <div className="batch-card-placeholder">
+                        <img src={logo} alt="" width="32" height="32" />
+                      </div>
+                    )}
                     <div className="batch-card-info">
                       <strong>{batch.recipe?.title ?? 'Unknown recipe'}</strong>
                       <span>{batch.portions_remaining} left</span>

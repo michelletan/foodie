@@ -4,6 +4,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import AuthGate from './components/AuthGate.jsx'
+import AnalysisView from './routes/AnalysisView.jsx'
 import BatchDetail from './routes/BatchDetail.jsx'
 import BatchForm from './routes/BatchForm.jsx'
 import FreezerView from './routes/FreezerView.jsx'
@@ -32,6 +33,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="freezer" element={<FreezerView />} />
             <Route path="freezer/used" element={<UsedBatchesView />} />
             <Route path="history" element={<HistoryView />} />
+            <Route path="analysis" element={<AnalysisView />} />
           </Route>
         </Routes>
       </AuthGate>

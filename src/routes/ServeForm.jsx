@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { listBatches, listRecipes, listServingEvents, serveMeal } from '../lib/data/index.js'
 import { compressImage } from '../lib/photo.js'
+import { SATISFACTION_RATINGS, satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Breakfast' },
@@ -10,7 +11,6 @@ const MEAL_TYPES = [
   { value: 'snack', label: 'Snack' },
   { value: 'milk', label: 'Milk' },
 ]
-const RATINGS = [1, 2, 3, 4, 5]
 
 export default function ServeForm() {
   const [searchParams] = useSearchParams()
@@ -325,14 +325,15 @@ export default function ServeForm() {
             <div className="field">
               <label>Satisfaction</label>
               <div className="rating-options">
-                {RATINGS.map((n) => (
+                {SATISFACTION_RATINGS.map((n) => (
                   <button
                     key={n}
                     type="button"
                     className={`rating-option${rating === n ? ' selected' : ''}`}
                     onClick={() => setRating(n)}
+                    aria-label={satisfactionLabel(n)}
                   >
-                    {n}
+                    {satisfactionFace(n)}
                   </button>
                 ))}
               </div>

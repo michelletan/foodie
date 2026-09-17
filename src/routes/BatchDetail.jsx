@@ -14,6 +14,7 @@ import {
   voidBatch,
   voidServingEvent,
 } from '../lib/data/index.js'
+import { satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
 
 export default function BatchDetail() {
   const { id } = useParams()
@@ -202,7 +203,11 @@ export default function BatchDetail() {
                 <strong>
                   {event.portions_used} portion{event.portions_used === 1 ? '' : 's'}
                 </strong>{' '}
-                · {capitalize(event.meal_type)} · {event.satisfaction_rating}/5 · {userName(event.served_by)} ·{' '}
+                · {capitalize(event.meal_type)} ·{' '}
+                <span title={satisfactionLabel(event.satisfaction_rating)}>
+                  {satisfactionFace(event.satisfaction_rating)}
+                </span>{' '}
+                · {userName(event.served_by)} ·{' '}
                 {new Date(event.served_at).toLocaleString()}
                 {event.voided_at && ' · deleted'}
               </div>

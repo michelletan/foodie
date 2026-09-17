@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getPhotoUrl, listBatches, listChildren, listRecipes, listServingEvents, listUsers } from '../lib/data/index.js'
+import { satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
 
 function capitalize(s) {
   return s ? s[0].toUpperCase() + s.slice(1) : s
@@ -202,7 +203,8 @@ export default function HistoryView() {
                     {formatDate(group.servedAt)} - {capitalize(group.mealType)}
                   </div>
                   <div className="history-meta">
-                    {group.servedByName} at {formatTime(group.servedAt)} · {group.rating}/5
+                    {group.servedByName} at {formatTime(group.servedAt)} ·{' '}
+                    <span title={satisfactionLabel(group.rating)}>{satisfactionFace(group.rating)}</span>
                   </div>
                   {batchNames.length > 0 && <div className="history-notes">{batchNames.join(', ')}</div>}
                   {freeText.map((text, i) => (
