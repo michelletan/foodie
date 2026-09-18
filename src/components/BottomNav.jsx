@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { getCurrentUser } from '../lib/data/index.js'
 
 const ICON_PROPS = {
   viewBox: '0 0 24 24',
@@ -53,32 +51,21 @@ const TABS = [
       </svg>
     ),
   },
+  {
+    to: '/analysis',
+    label: 'Analysis',
+    icon: (
+      <svg {...ICON_PROPS}>
+        <path d="M4 20V10M12 20V4M20 20v-7" />
+      </svg>
+    ),
+  },
 ]
 
-const ANALYSIS_TAB = {
-  to: '/analysis',
-  label: 'Analysis',
-  icon: (
-    <svg {...ICON_PROPS}>
-      <path d="M4 20V10M12 20V4M20 20v-7" />
-    </svg>
-  ),
-}
-
 export default function BottomNav() {
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  useEffect(() => {
-    getCurrentUser()
-      .then((user) => setIsAdmin(user.role === 'admin'))
-      .catch(() => {})
-  }, [])
-
-  const tabs = isAdmin ? [...TABS, ANALYSIS_TAB] : TABS
-
   return (
     <nav className="bottom-nav">
-      {tabs.map((tab) => (
+      {TABS.map((tab) => (
         <NavLink key={tab.to} to={tab.to} end={tab.end} className="bottom-nav-tab">
           {tab.icon}
           <span>{tab.label}</span>

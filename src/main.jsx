@@ -9,6 +9,7 @@ import BatchDetail from './routes/BatchDetail.jsx'
 import BatchForm from './routes/BatchForm.jsx'
 import FreezerView from './routes/FreezerView.jsx'
 import HistoryView from './routes/HistoryView.jsx'
+import MealDetail from './routes/MealDetail.jsx'
 import RecipeDetail from './routes/RecipeDetail.jsx'
 import RecipeForm from './routes/RecipeForm.jsx'
 import RecipeList from './routes/RecipeList.jsx'
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="freezer" element={<FreezerView />} />
             <Route path="freezer/used" element={<UsedBatchesView />} />
             <Route path="history" element={<HistoryView />} />
+            <Route path="meals/:eventId" element={<MealDetail />} />
             <Route path="analysis" element={<AnalysisView />} />
           </Route>
         </Routes>

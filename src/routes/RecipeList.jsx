@@ -46,7 +46,9 @@ export default function RecipeList() {
         />
       )}
 
-      {filtered?.length === 0 && <p className="empty-state">No recipes match "{search}".</p>}
+      {recipes?.length > 0 && filtered?.length === 0 && (
+        <p className="empty-state">No recipes match "{search}".</p>
+      )}
 
       {visible?.length > 0 && (
         <>

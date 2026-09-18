@@ -172,9 +172,10 @@ export default function ServeForm() {
     }
     setSaving(true)
     let savedCount = 0
+    let firstEventId = null
     try {
       for (const item of items) {
-        await serveMeal({
+        const event = await serveMeal({
           batchId: item.batchId,
           portionsUsed: item.portionsUsed,
           mealType,
@@ -185,9 +186,10 @@ export default function ServeForm() {
           satisfactionRating: rating,
           notes: notes.trim() || null,
         })
+        if (!firstEventId) firstEventId = event.id
         savedCount += 1
       }
-      navigate(freezerItems[0] ? `/batches/${freezerItems[0].batchId}` : '/history')
+      navigate(`/meals/${firstEventId}`)
     } catch (err) {
       setError(
         savedCount > 0
@@ -208,7 +210,9 @@ export default function ServeForm() {
 
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label>Meal</label>
+          <label>
+            Meal<span className="required-mark">*</span>
+          </label>
           <div className="meal-type-options">
             {MEAL_TYPES.map((m) => (
               <button
@@ -240,7 +244,7 @@ export default function ServeForm() {
             )}
 
             <div className="field">
-              <label htmlFor="addBatch">From the freezer (optional)</label>
+              <label htmlFor="addBatch">From the freezer</label>
               <select id="addBatch" value="" onChange={(e) => handleAddFreezerItem(e.target.value)}>
                 <option value="">Add a batch…</option>
                 {availableBatches.map((b) => (
@@ -290,7 +294,7 @@ export default function ServeForm() {
             </div>
 
             <div className="field">
-              <label htmlFor="description">Description (optional)</label>
+              <label htmlFor="description">Description</label>
               <input
                 id="description"
                 placeholder="e.g. banana slices"
@@ -300,7 +304,7 @@ export default function ServeForm() {
             </div>
 
             <div className="field">
-              <label>Photo (optional)</label>
+              <label>Photo</label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -327,7 +331,7 @@ export default function ServeForm() {
         {mealType && (
           <>
             <div className="field">
-              <label>Satisfaction (optional)</label>
+              <label>Satisfaction</label>
               <div className="rating-options">
                 {SATISFACTION_RATINGS.map((n) => (
                   <button
@@ -344,7 +348,7 @@ export default function ServeForm() {
             </div>
 
             <div className="field">
-              <label htmlFor="serveNotes">Note (optional)</label>
+              <label htmlFor="serveNotes">Note</label>
               <input id="serveNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           </>
@@ -352,7 +356,7 @@ export default function ServeForm() {
 
         {error && <p className="error">{error}</p>}
 
-        <div className="form-actions">
+        <div className="form-actions serve-save-bar">
           <button type="submit" className="button" disabled={saving || compressing || !mealType}>
             {saving ? 'Saving…' : 'Save'}
           </button>

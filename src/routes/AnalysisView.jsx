@@ -16,13 +16,14 @@ function capitalize(s) {
   return s ? s[0].toUpperCase() + s.slice(1) : s
 }
 
-// Admin-only, read-only rollup over recipes/batches/servings — everything
-// here is derived client-side from the same list*() calls other pages use,
-// no new backend endpoints. Gated on role, same check as BatchDetail's
-// isAdmin, so it works identically against the local dev backend and
-// Supabase.
+// Read-only rollup over recipes/batches/servings, visible to everyone —
+// everything here is derived client-side from the same list*() calls other
+// pages use, no new backend endpoints. The low-stock-threshold setting at
+// the bottom stays admin-only (updateSettings() is still admin-gated
+// server-side, in both localBackend.js and the Postgres function), so only
+// that section checks role.
 export default function AnalysisView() {
-  const [isAdmin, setIsAdmin] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [stats, setStats] = useState(null)
   const [threshold, setThreshold] = useState('')
   const [saving, setSaving] = useState(false)
@@ -30,11 +31,7 @@ export default function AnalysisView() {
 
   async function refresh() {
     const currentUser = await getCurrentUser()
-    if (currentUser.role !== 'admin') {
-      setIsAdmin(false)
-      return
-    }
-    setIsAdmin(true)
+    setIsAdmin(currentUser.role === 'admin')
 
     const [recipes, batches, events, settings] = await Promise.all([
       listRecipes(),
@@ -120,7 +117,6 @@ export default function AnalysisView() {
   }
 
   if (error) return <p className="error">{error}</p>
-  if (isAdmin === false) return <p className="empty-state">This page is for admins only.</p>
   if (!stats) return <p>Loading…</p>
 
   return (
@@ -206,22 +202,26 @@ export default function AnalysisView() {
         </ul>
       )}
 
-      <h3>Settings</h3>
-      <form onSubmit={handleSaveThreshold} className="field">
-        <label htmlFor="threshold">Low stock threshold (portions)</label>
-        <input
-          id="threshold"
-          type="number"
-          inputMode="numeric"
-          min="0"
-          step="1"
-          value={threshold}
-          onChange={(e) => setThreshold(e.target.value)}
-        />
-        <button type="submit" className="button" disabled={saving}>
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </form>
+      {isAdmin && (
+        <>
+          <h3>Settings</h3>
+          <form onSubmit={handleSaveThreshold} className="field">
+            <label htmlFor="threshold">Low stock threshold (portions)</label>
+            <input
+              id="threshold"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+            />
+            <button type="submit" className="button" disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </form>
+        </>
+      )}
     </div>
   )
 }

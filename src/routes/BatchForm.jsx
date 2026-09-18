@@ -115,7 +115,9 @@ export default function BatchForm() {
 
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="recipe">Recipe</label>
+          <label htmlFor="recipe">
+            Recipe<span className="required-mark">*</span>
+          </label>
           <select id="recipe" value={recipeId} onChange={(e) => setRecipeId(e.target.value)}>
             <option value="">Select a recipe…</option>
             {recipes.map((r) => (
@@ -128,7 +130,9 @@ export default function BatchForm() {
 
         {children.length > 1 && (
           <div className="field">
-            <label htmlFor="child">Child</label>
+            <label htmlFor="child">
+              Child<span className="required-mark">*</span>
+            </label>
             <select id="child" value={childId} onChange={(e) => setChildId(e.target.value)}>
               <option value="">Select a child…</option>
               {children.map((c) => (
@@ -141,7 +145,9 @@ export default function BatchForm() {
         )}
 
         <div className="field">
-          <label htmlFor="portions">Portions made</label>
+          <label htmlFor="portions">
+            Portions made<span className="required-mark">*</span>
+          </label>
           <input
             id="portions"
             type="number"
@@ -154,7 +160,9 @@ export default function BatchForm() {
         </div>
 
         <div className="field">
-          <label htmlFor="portionSize">Portion size</label>
+          <label htmlFor="portionSize">
+            Portion size<span className="required-mark">*</span>
+          </label>
           <input
             id="portionSize"
             placeholder="e.g. 125ml"
@@ -176,7 +184,9 @@ export default function BatchForm() {
         </div>
 
         <div className="field">
-          <label htmlFor="expiresAt">Expiry date</label>
+          <label htmlFor="expiresAt">
+            Expiry date<span className="required-mark">*</span>
+          </label>
           <input
             id="expiresAt"
             type="date"
@@ -198,7 +208,7 @@ export default function BatchForm() {
         </div>
 
         <div className="field">
-          <label>Photo (optional)</label>
+          <label>Photo</label>
           <input
             ref={fileInputRef}
             type="file"

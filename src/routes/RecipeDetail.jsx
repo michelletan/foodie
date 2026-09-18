@@ -33,11 +33,11 @@ export default function RecipeDetail() {
           {recipe.title}
         </h2>
         <div className="button-group">
-          <Link className="button" to={`/batches/new?recipeId=${recipe.id}`}>
-            Log batch
-          </Link>
           <Link className="button secondary" to={`/recipes/${recipe.id}/edit`}>
             Edit
+          </Link>
+          <Link className="button" to={`/batches/new?recipeId=${recipe.id}`}>
+            Add to freezer
           </Link>
         </div>
       </div>

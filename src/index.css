@@ -112,6 +112,11 @@ textarea {
   font-size: 14px;
 }
 
+.required-mark {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
 .field input,
 .field textarea,
 .field select {

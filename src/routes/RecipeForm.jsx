@@ -98,7 +98,9 @@ export default function RecipeForm() {
 
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="title">Title</label>
+          <label htmlFor="title">
+            Title<span className="required-mark">*</span>
+          </label>
           <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
@@ -140,7 +142,9 @@ export default function RecipeForm() {
 
         {format === 'freetext' && (
           <div className="field">
-            <label htmlFor="rawText">Recipe text</label>
+            <label htmlFor="rawText">
+              Recipe text<span className="required-mark">*</span>
+            </label>
             <textarea
               id="rawText"
               rows={14}
@@ -154,7 +158,9 @@ export default function RecipeForm() {
         {format === 'structured' && (
           <>
             <div className="field">
-              <label>Ingredients</label>
+              <label>
+                Ingredients<span className="required-mark">*</span>
+              </label>
               <div className="ingredient-rows">
                 {ingredients.map((row, i) => (
                   <div className="ingredient-row" key={i}>
@@ -190,7 +196,9 @@ export default function RecipeForm() {
             </div>
 
             <div className="field">
-              <label htmlFor="instructions">Instructions</label>
+              <label htmlFor="instructions">
+                Instructions<span className="required-mark">*</span>
+              </label>
               <textarea
                 id="instructions"
                 rows={6}
@@ -200,7 +208,7 @@ export default function RecipeForm() {
             </div>
 
             <div className="field">
-              <label htmlFor="notes">Notes (optional)</label>
+              <label htmlFor="notes">Notes</label>
               <textarea id="notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           </>

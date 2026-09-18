@@ -6,13 +6,11 @@ import {
   getPhotoUrl,
   getRecipe,
   hardDeleteBatch,
-  hardDeleteServingEvent,
   listChildren,
   listServingEvents,
   listUsers,
   throwOutBatch,
   voidBatch,
-  voidServingEvent,
 } from '../lib/data/index.js'
 import { satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
 
@@ -102,26 +100,6 @@ export default function BatchDetail() {
     }
   }
 
-  async function handleVoidServingEvent(eventId) {
-    if (!confirm('Delete this serving? Its portions will be added back to the batch.')) return
-    try {
-      await voidServingEvent(eventId)
-      await refresh()
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  async function handleHardDeleteServingEvent(eventId) {
-    if (!confirm('Permanently delete this serving record? This cannot be undone.')) return
-    try {
-      await hardDeleteServingEvent(eventId)
-      await refresh()
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
   if (error) return <p className="error">{error}</p>
   if (!batch) return <p>Loading…</p>
 
@@ -199,43 +177,25 @@ export default function BatchDetail() {
         <ul className="serving-list">
           {servingEvents.map((event) => (
             <li key={event.id} className={event.voided_at ? 'voided' : ''}>
-              <div className="serving-summary">
-                <strong>
-                  {event.portions_used} portion{event.portions_used === 1 ? '' : 's'}
-                </strong>{' '}
-                · {capitalize(event.meal_type)} ·{' '}
-                <span title={satisfactionLabel(event.satisfaction_rating)}>
-                  {satisfactionFace(event.satisfaction_rating)}
-                </span>{' '}
-                · {userName(event.served_by)} ·{' '}
-                {new Date(event.served_at).toLocaleString()}
-                {event.voided_at && ' · deleted'}
-              </div>
-              {event.description && <div className="serving-notes">{event.description}</div>}
-              {event.notes && <div className="serving-notes">{event.notes}</div>}
-              {event.photoUrl && (
-                <img className="serving-photo" src={event.photoUrl} alt="" />
-              )}
-              <div className="button-group">
-                {!event.voided_at && (
-                  <button
-                    type="button"
-                    className="button secondary"
-                    onClick={() => handleVoidServingEvent(event.id)}
-                  >
-                    Delete
-                  </button>
+              <Link to={`/meals/${event.id}`}>
+                <div className="serving-summary">
+                  <strong>
+                    {event.portions_used} portion{event.portions_used === 1 ? '' : 's'}
+                  </strong>{' '}
+                  · {capitalize(event.meal_type)} ·{' '}
+                  <span title={satisfactionLabel(event.satisfaction_rating)}>
+                    {satisfactionFace(event.satisfaction_rating)}
+                  </span>{' '}
+                  · {userName(event.served_by)} ·{' '}
+                  {new Date(event.served_at).toLocaleString()}
+                  {event.voided_at && ' · deleted'}
+                </div>
+                {event.description && <div className="serving-notes">{event.description}</div>}
+                {event.notes && <div className="serving-notes">{event.notes}</div>}
+                {event.photoUrl && (
+                  <img className="serving-photo" src={event.photoUrl} alt="" />
                 )}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    className="button danger"
-                    onClick={() => handleHardDeleteServingEvent(event.id)}
-                  >
-                    Delete permanently
-                  </button>
-                )}
-              </div>
+              </Link>
             </li>
           ))}
         </ul>
