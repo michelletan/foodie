@@ -186,26 +186,6 @@ export async function throwOutBatch(batchId) {
   return batch
 }
 
-// Reserved for batches that were mistakenly created and never actually used
-// — once anything has been served from a batch (even if later voided),
-// that history needs the batch to stick around so it stays legible; void it
-// or throw out the rest instead.
-export async function hardDeleteBatch(batchId) {
-  const db = loadDb()
-  const user = await getCurrentUser()
-  requireAdmin(user)
-  const batch = db.batches.find((b) => b.id === batchId)
-  if (!batch) throw new Error(`Batch not found: ${batchId}`)
-  const hasServings = db.serving_events.some((e) => e.batch_id === batchId && !e.deleted_at)
-  if (hasServings) {
-    throw new Error('This batch has servings logged against it — void it instead of deleting.')
-  }
-  if (batch.photo_path) await deletePhoto(batch.photo_path)
-  batch.deleted_at = now()
-  saveDb(db)
-  return batch
-}
-
 // --- Serving events ---
 
 export async function listServingEvents({ batchId, includeVoided = false, since } = {}) {
@@ -277,28 +257,21 @@ export async function serveMeal({
   return event
 }
 
-export async function voidServingEvent(eventId) {
+// Removes a serving event in one step — reinstating any portions it used
+// and marking it deleted (never an actual purge, matching batches) —
+// instead of the old two-step void-then-admin-hard-delete. Open to any
+// user; idempotent if the event was already deleted.
+export async function deleteServingEvent(eventId) {
   const db = loadDb()
   const event = db.serving_events.find((e) => e.id === eventId)
   if (!event) throw new Error(`Serving event not found: ${eventId}`)
-  if (event.voided_at) return event
+  if (event.deleted_at) return event
 
   if (event.batch_id) {
     const batch = db.batches.find((b) => b.id === event.batch_id)
     if (batch) batch.portions_remaining += event.portions_used
   }
 
-  event.voided_at = now()
-  saveDb(db)
-  return event
-}
-
-export async function hardDeleteServingEvent(eventId) {
-  const db = loadDb()
-  const user = await getCurrentUser()
-  requireAdmin(user)
-  const event = db.serving_events.find((e) => e.id === eventId)
-  if (!event) throw new Error(`Serving event not found: ${eventId}`)
   if (event.photo_path) await deletePhoto(event.photo_path)
   event.deleted_at = now()
   saveDb(db)

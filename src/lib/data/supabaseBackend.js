@@ -142,13 +142,6 @@ export async function throwOutBatch(batchId) {
   return unwrap(await supabase.rpc('throw_out_batch', { p_batch_id: batchId }))
 }
 
-export async function hardDeleteBatch(batchId) {
-  const batch = await getBatch(batchId)
-  const result = unwrap(await supabase.rpc('hard_delete_batch', { p_batch_id: batchId }))
-  if (batch.photo_path) await supabase.storage.from(PHOTO_BUCKET).remove([batch.photo_path])
-  return result
-}
-
 // --- Serving events ---
 
 export async function listServingEvents({ batchId, includeVoided = false, since } = {}) {
@@ -194,13 +187,12 @@ export async function serveMeal({
   )
 }
 
-export async function voidServingEvent(eventId) {
-  return unwrap(await supabase.rpc('void_serving_event', { p_event_id: eventId }))
-}
-
-export async function hardDeleteServingEvent(eventId) {
+// Removes a serving event in one step — reinstating any portions it used
+// and marking it deleted — instead of the old two-step
+// void-then-admin-hard-delete. Open to any user.
+export async function deleteServingEvent(eventId) {
   const { data: event } = await supabase.from('serving_events').select('photo_path').eq('id', eventId).single()
-  const result = unwrap(await supabase.rpc('hard_delete_serving_event', { p_event_id: eventId }))
+  const result = unwrap(await supabase.rpc('delete_serving_event', { p_event_id: eventId }))
   if (event?.photo_path) await supabase.storage.from(PHOTO_BUCKET).remove([event.photo_path])
   return result
 }

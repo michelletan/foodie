@@ -27,6 +27,10 @@ export default function RecipeDetail() {
 
   return (
     <div className="recipe-detail">
+      <Link className="back-link" to="/">
+        ← Recipes
+      </Link>
+
       <div className="page-header">
         <h2>
           {protein && <span aria-hidden="true">{protein.icon} </span>}

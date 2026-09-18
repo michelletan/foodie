@@ -146,6 +146,19 @@
   margin-bottom: 16px;
 }
 
+.back-link {
+  display: inline-block;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
 .search-input {
   display: block;
   width: 100%;
@@ -486,6 +499,12 @@
   margin-bottom: 4px;
 }
 
+.serving-meta {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
 .serving-notes {
   font-size: 14px;
   color: var(--text);
@@ -596,6 +615,11 @@
   border-radius: 8px;
   padding: 12px 16px;
   color: var(--text-h);
+  cursor: pointer;
+}
+
+.history-list li > div:hover {
+  border-color: var(--accent);
 }
 
 .history-summary {

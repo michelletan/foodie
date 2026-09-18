@@ -1,41 +1,36 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   getBatch,
-  getCurrentUser,
   getPhotoUrl,
   getRecipe,
-  hardDeleteBatch,
   listChildren,
   listServingEvents,
   listUsers,
   throwOutBatch,
   voidBatch,
 } from '../lib/data/index.js'
+import { formatDate } from '../lib/mealGroups.js'
 import { satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
 
 export default function BatchDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const [batch, setBatch] = useState(null)
   const [recipe, setRecipe] = useState(null)
   const [child, setChild] = useState(null)
   const [users, setUsers] = useState([])
-  const [currentUser, setCurrentUser] = useState(null)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [servingEvents, setServingEvents] = useState([])
   const [error, setError] = useState(null)
 
   async function refresh() {
-    const [batch, users, currentUser, events] = await Promise.all([
+    const [batch, users, events] = await Promise.all([
       getBatch(id),
       listUsers(),
-      getCurrentUser(),
       listServingEvents({ batchId: id, includeVoided: true }),
     ])
     setBatch(batch)
     setUsers(users)
-    setCurrentUser(currentUser)
     setServingEvents(
       await Promise.all(events.map(async (e) => ({ ...e, photoUrl: await getPhotoUrl(e.photo_path) })))
     )
@@ -90,23 +85,15 @@ export default function BatchDetail() {
     }
   }
 
-  async function handleHardDeleteBatch() {
-    if (!confirm('Permanently delete this batch? This cannot be undone.')) return
-    try {
-      await hardDeleteBatch(batch.id)
-      navigate(`/recipes/${batch.recipe_id}`)
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
   if (error) return <p className="error">{error}</p>
   if (!batch) return <p>Loading…</p>
 
-  const isAdmin = currentUser?.role === 'admin'
-
   return (
     <div className="batch-detail">
+      <Link className="back-link" to="/freezer">
+        ← Freezer
+      </Link>
+
       <div className="page-header">
         <h2>{recipe?.title ?? 'Batch'}</h2>
         <div className="button-group">
@@ -147,7 +134,7 @@ export default function BatchDetail() {
       </dl>
 
       <div className="button-group">
-        {!batch.voided_at && (
+        {!batch.voided_at && batch.portions_remaining > 0 && servingEvents.length === 0 && (
           <button type="button" className="button secondary" onClick={handleVoidBatch}>
             Delete
           </button>
@@ -157,19 +144,7 @@ export default function BatchDetail() {
             Throw out
           </button>
         )}
-        {isAdmin && servingEvents.length === 0 && (
-          <button type="button" className="button danger" onClick={handleHardDeleteBatch}>
-            Delete permanently
-          </button>
-        )}
       </div>
-
-      {isAdmin && servingEvents.length > 0 && (
-        <p className="hint">
-          Delete permanently is only for batches that were mistakenly created and never served from — this one has
-          servings logged below, so use delete or throw out instead.
-        </p>
-      )}
 
       <h3>Servings</h3>
       {servingEvents.length === 0 && <p className="empty-state">No servings logged yet.</p>}
@@ -185,10 +160,11 @@ export default function BatchDetail() {
                   · {capitalize(event.meal_type)} ·{' '}
                   <span title={satisfactionLabel(event.satisfaction_rating)}>
                     {satisfactionFace(event.satisfaction_rating)}
-                  </span>{' '}
-                  · {userName(event.served_by)} ·{' '}
-                  {new Date(event.served_at).toLocaleString()}
+                  </span>
                   {event.voided_at && ' · deleted'}
+                </div>
+                <div className="serving-meta">
+                  {userName(event.served_by)} · {formatDate(event.served_at)}
                 </div>
                 {event.description && <div className="serving-notes">{event.description}</div>}
                 {event.notes && <div className="serving-notes">{event.notes}</div>}

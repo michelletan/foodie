@@ -54,7 +54,7 @@ The migrations and the real backend ([`supabaseBackend.js`](src/lib/data/supabas
 npm test
 ```
 
-Unit tests cover [`src/lib/data/localBackend.js`](src/lib/data/localBackend.js) (Vitest + jsdom + `fake-indexeddb`) — seeding, the atomic serve/void portion math, admin-only gating on hard deletes, void-excludes-but-keeps behavior, and recipe format handling — plus [`importPdfRecipes.js`](src/lib/data/importPdfRecipes.js)'s idempotency. UI/component tests aren't set up yet; everything above M0's data layer has so far only been verified by hand in the browser.
+Unit tests cover [`src/lib/data/localBackend.js`](src/lib/data/localBackend.js) (Vitest + jsdom + `fake-indexeddb`) — seeding, the atomic serve portion math, deleting a serving event (portion reinstatement, photo removal, idempotency, delete-excludes-but-keeps behavior), and recipe format handling — plus [`importPdfRecipes.js`](src/lib/data/importPdfRecipes.js)'s idempotency. UI/component tests aren't set up yet; everything above M0's data layer has so far only been verified by hand in the browser.
 
 Node 22+'s experimental built-in `localStorage` shadows jsdom's working one with a broken stub, so the `test` script disables it via `NODE_OPTIONS=--no-experimental-webstorage`.
 
@@ -76,7 +76,7 @@ Pushing to `main` builds and deploys to GitHub Pages via [`.github/workflows/dep
 
 ### M1 — Schema & auth
 - [x] Migrations for `users`, `children`, `recipes`, `batches`, `serving_events`, `app_settings` — written in `supabase/migrations/`, not yet applied to a live project (see "Supabase setup" above)
-- [x] RLS policies: all 3 users equal read/write on core tables; admin-only mutations (hard delete, settings) have no direct UPDATE policy at all and go through SECURITY DEFINER functions instead, since RLS can't cleanly gate individual columns
+- [x] RLS policies: all 3 users equal read/write on core tables; every mutation beyond a plain insert has no direct UPDATE policy at all and goes through SECURITY DEFINER functions instead (only `update_settings` is still admin-gated — see M5 for why delete/void no longer are)
 - [x] Postgres functions for atomic portion decrement/restore (`serve_meal`, `void_serving_event`) plus every other admin-gated mutation
 - [ ] Supabase Auth: 3 manually-created accounts — your action in the dashboard, see "Supabase setup" above
 - [x] Seed script: `0005_seed.sql` seeds the 1 child (Hazel); the 3 `public.users` rows need real auth UUIDs from the step above, so that insert is documented but can't be pre-written
@@ -98,8 +98,8 @@ Pushing to `main` builds and deploys to GitHub Pages via [`.github/workflows/dep
 - [x] Wires into `serveMeal()`'s atomic decrement (local backend now; same call will hit M1's Postgres function once `supabaseBackend.js` is implemented)
 
 ### M5 — Undo/delete
-- [x] Void (soft delete) on any batch/serving_event, no time limit, any user, restores portion counts (batch/serving buttons on `/batches/:id`)
-- [x] Hard delete, admin-only, separate confirmation — gated both in the UI (button hidden for non-admins) and in the data layer (`requireAdmin` throws regardless of what the UI shows)
+- [x] Batch: one "Delete" button (soft — `voidBatch`, nothing destroyed), shown only while the batch has never been served from and still has portions left; "Throw out" (zeroes portions, keeps the record for reference in Used Batches) stays available independent of serving history (`/batches/:id`)
+- [x] Serving event/meal: one "Delete" button (`deleteServingEvent`/`delete_serving_event`) that reinstates any portions the meal used and marks it deleted in a single step — no separate void state, no admin gate, no "permanently" (`/meals/:id`; deletes every row in a multi-batch meal, each reinstating its own batch)
 
 ### M6 — Parent dashboard
 - [x] Freezer view (`/freezer`): portions remaining grouped child → recipe → batch, photo + prep date

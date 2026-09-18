@@ -15,11 +15,9 @@ const {
   createBatch,
   voidBatch,
   throwOutBatch,
-  hardDeleteBatch,
   listServingEvents,
   serveMeal,
-  voidServingEvent,
-  hardDeleteServingEvent,
+  deleteServingEvent,
   getSettings,
   updateSettings,
   getPhotoUrl,
@@ -200,33 +198,6 @@ describe('batches', () => {
     expect(stored.deleted_at).toBeNull()
   })
 
-  it('hard delete requires admin', async () => {
-    const batch = await makeBatch()
-    await setCurrentUser('u-helper')
-    await expect(hardDeleteBatch(batch.id)).rejects.toThrow(/admin/i)
-  })
-
-  it('refuses to hard delete a batch that has servings logged against it, even if voided', async () => {
-    const batch = await makeBatch()
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'lunch', satisfactionRating: 4 })
-
-    await expect(hardDeleteBatch(batch.id)).rejects.toThrow(/servings logged/i)
-
-    await voidServingEvent(event.id)
-    await expect(hardDeleteBatch(batch.id)).rejects.toThrow(/servings logged/i)
-  })
-
-  it('hard delete removes the photo and hides the batch from listings, but never purges the record', async () => {
-    const photoBlob = new Blob(['fake jpeg bytes'], { type: 'image/jpeg' })
-    const batch = await makeBatch({ photoBlob })
-
-    await hardDeleteBatch(batch.id)
-
-    expect(await listBatches({ includeVoided: true })).toEqual([])
-    const stillThere = await getBatch(batch.id)
-    expect(stillThere.deleted_at).not.toBeNull()
-    expect(await getPhotoUrl(stillThere.photo_path)).toBeNull()
-  })
 })
 
 describe('serving a meal (atomic portion math)', () => {
@@ -257,38 +228,56 @@ describe('serving a meal (atomic portion math)', () => {
     expect((await getBatch(batch.id)).portions_remaining).toBe(2)
   })
 
-  it('voiding a serving event restores the batch portions', async () => {
+  it('deleting a serving event reinstates the batch portions and removes the photo', async () => {
+    const photoBlob = new Blob(['fake jpeg bytes'], { type: 'image/jpeg' })
     const batch = await makeBatch()
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 3, mealType: 'breakfast', satisfactionRating: 4 })
+    const event = await serveMeal({
+      batchId: batch.id,
+      portionsUsed: 3,
+      mealType: 'breakfast',
+      satisfactionRating: 4,
+      photoBlob,
+    })
     expect((await getBatch(batch.id)).portions_remaining).toBe(3)
 
-    await voidServingEvent(event.id)
+    const deleted = await deleteServingEvent(event.id)
 
     expect((await getBatch(batch.id)).portions_remaining).toBe(6)
-    expect((await listServingEvents({ batchId: batch.id, includeVoided: true }))[0].voided_at).not.toBeNull()
+    expect(deleted.deleted_at).not.toBeNull()
+    expect(await getPhotoUrl(event.photo_path)).toBeNull()
+    expect(await listServingEvents({ batchId: batch.id, includeVoided: true })).toEqual([])
   })
 
-  it('voiding an already-voided serving event does not double-restore portions', async () => {
+  it('deleting an already-deleted serving event does not double-restore portions', async () => {
     const batch = await makeBatch()
     const event = await serveMeal({ batchId: batch.id, portionsUsed: 3, mealType: 'breakfast', satisfactionRating: 4 })
 
-    await voidServingEvent(event.id)
-    await voidServingEvent(event.id)
+    await deleteServingEvent(event.id)
+    await deleteServingEvent(event.id)
 
     expect((await getBatch(batch.id)).portions_remaining).toBe(6)
   })
 
-  it('excludes voided servings from listServingEvents by default and sorts newest first', async () => {
+  it('excludes deleted servings from listServingEvents (with or without includeVoided) and sorts newest first', async () => {
     const batch = await makeBatch({ portionsTotal: 10 })
     const first = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'breakfast', satisfactionRating: 3 })
     const second = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'lunch', satisfactionRating: 4 })
-    await voidServingEvent(first.id)
+    await deleteServingEvent(first.id)
 
     const visible = await listServingEvents({ batchId: batch.id })
     expect(visible.map((e) => e.id)).toEqual([second.id])
 
-    const all = await listServingEvents({ batchId: batch.id, includeVoided: true })
-    expect(all).toHaveLength(2)
+    const withIncludeVoided = await listServingEvents({ batchId: batch.id, includeVoided: true })
+    expect(withIncludeVoided.map((e) => e.id)).toEqual([second.id])
+  })
+
+  it('deleting a serving event works for a non-admin user (no longer admin-gated)', async () => {
+    const batch = await makeBatch()
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'dinner', satisfactionRating: 3 })
+    await setCurrentUser('u-helper')
+
+    await expect(deleteServingEvent(event.id)).resolves.toBeTruthy()
+    expect((await getBatch(batch.id)).portions_remaining).toBe(6)
   })
 
   it('filters servings by since', async () => {
@@ -300,13 +289,6 @@ describe('serving a meal (atomic portion math)', () => {
 
     expect(await listServingEvents({ since: past })).toContainEqual(event)
     expect(await listServingEvents({ since: future })).not.toContainEqual(event)
-  })
-
-  it('hard delete of a serving event requires admin', async () => {
-    const batch = await makeBatch()
-    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'dinner', satisfactionRating: 3 })
-    await setCurrentUser('u-helper')
-    await expect(hardDeleteServingEvent(event.id)).rejects.toThrow(/admin/i)
   })
 
   it('logs milk with no batch, description, or photo', async () => {

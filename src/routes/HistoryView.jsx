@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getPhotoUrl, listBatches, listChildren, listRecipes, listServingEvents, listUsers } from '../lib/data/index.js'
 import { capitalize, formatDate, formatTime, groupRows } from '../lib/mealGroups.js'
 import { satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
@@ -32,6 +32,7 @@ function sinceFor(period) {
 // Once M1 lands, wire a Supabase Realtime subscription on `serving_events`
 // here and call refresh() on change instead of only fetching once on mount.
 export default function HistoryView() {
+  const navigate = useNavigate()
   const [period, setPeriod] = useState('week')
   const [children, setChildren] = useState(null)
   const [childFilter, setChildFilter] = useState('')
@@ -138,7 +139,12 @@ export default function HistoryView() {
 
             return (
               <li key={group.id}>
-                <div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/meals/${group.id}`)}
+                  onKeyDown={(e) => e.key === 'Enter' && navigate(`/meals/${group.id}`)}
+                >
                   <div className="history-summary">
                     {formatDate(group.servedAt)} - {capitalize(group.mealType)}
                   </div>
@@ -150,7 +156,9 @@ export default function HistoryView() {
                     <div className="history-notes">
                       {batchItems.map((item, i) => (
                         <span key={item.event.batch_id}>
-                          <Link to={`/batches/${item.event.batch_id}`}>{item.title}</Link>
+                          <Link to={`/batches/${item.event.batch_id}`} onClick={(e) => e.stopPropagation()}>
+                            {item.title}
+                          </Link>
                           {i < batchItems.length - 1 ? ', ' : ''}
                         </span>
                       ))}
