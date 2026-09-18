@@ -82,8 +82,35 @@ export default function HistoryView() {
   const filteredRows = rows && childFilter ? rows.filter((r) => r.childId === childFilter) : rows
   const groups = filteredRows ? groupRows(filteredRows) : null
 
+  // All periods look back from now, so today is always in range regardless
+  // of which one is selected — no separate fetch needed for this.
+  const todayStr = new Date().toDateString()
+  const todaysGroups = groups ? groups.filter((g) => new Date(g.servedAt).toDateString() === todayStr) : []
+  const todaysCounts = todaysGroups.reduce(
+    (acc, g) => {
+      if (g.mealType === 'snack') acc.snacks += 1
+      else if (g.mealType === 'milk') acc.milk += 1
+      else acc.meals += 1
+      return acc
+    },
+    { meals: 0, snacks: 0, milk: 0 }
+  )
+  const pluralize = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
   return (
     <div>
+      {groups && (
+        <div className="today-summary">
+          <div className="today-summary-date">
+            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+          </div>
+          <div className="today-summary-counts">
+            {pluralize(todaysCounts.meals, 'meal')}, {pluralize(todaysCounts.snacks, 'snack')}, {todaysCounts.milk}{' '}
+            milk
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <h2>History</h2>
         {children && children.length > 1 && (
