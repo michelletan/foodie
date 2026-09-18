@@ -35,11 +35,14 @@ $$;
 -- Atomically decrements portions_remaining and logs the serving in one
 -- statement, so two people serving from the same batch at once can't
 -- corrupt the count (see spec's "Portion math" note). batch_id/portions_used
--- are optional — a serving can be a free-text description, a photo, or (for
--- meal_type 'milk') nothing at all, matching ServeForm.jsx's validation.
+-- and p_satisfaction_rating are all optional — a serving can be a free-text
+-- description, a photo, or (for meal_type 'milk') nothing at all, matching
+-- ServeForm.jsx's validation. p_satisfaction_rating defaults to null too, so
+-- a direct RPC call that omits it (as supabase-js does when the JS value is
+-- undefined) doesn't fail with a missing-argument error.
 create or replace function public.serve_meal(
   p_meal_type text,
-  p_satisfaction_rating smallint,
+  p_satisfaction_rating smallint default null,
   p_batch_id uuid default null,
   p_portions_used integer default null,
   p_description text default null,
@@ -81,41 +84,6 @@ begin
 end;
 $$;
 
--- Restores the batch's portions (if any were used); a no-op if already
--- voided (matches localBackend.js's voidServingEvent, which the unit tests
--- cover).
-create or replace function public.void_serving_event(p_event_id uuid)
-returns public.serving_events
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  event public.serving_events;
-begin
-  select * into event from public.serving_events where id = p_event_id;
-  if not found then
-    raise exception 'Serving event not found';
-  end if;
-  if event.voided_at is not null then
-    return event;
-  end if;
-
-  if event.batch_id is not null then
-    update public.batches
-      set portions_remaining = portions_remaining + event.portions_used
-      where id = event.batch_id;
-  end if;
-
-  update public.serving_events
-    set voided_at = now()
-    where id = p_event_id
-    returning * into event;
-
-  return event;
-end;
-$$;
-
 create or replace function public.void_batch(p_batch_id uuid)
 returns public.batches
 language plpgsql
@@ -133,10 +101,11 @@ begin
 end;
 $$;
 
--- Admin-only. Still just sets deleted_at — nothing is ever actually
--- purged (see spec's Retention note) — the caller is responsible for
--- also removing the Storage photo, since that's outside SQL's reach.
-create or replace function public.hard_delete_batch(p_batch_id uuid)
+-- "Throw out" a batch: zeroes portions_remaining (so it drops off the
+-- freezer view, same as being fully served) without touching voided_at or
+-- deleted_at, so the batch stays around for reference on the used-batches
+-- view. Not admin-gated, same as void_batch — any user can do this.
+create or replace function public.throw_out_batch(p_batch_id uuid)
 returns public.batches
 language plpgsql
 security definer
@@ -145,8 +114,7 @@ as $$
 declare
   batch public.batches;
 begin
-  perform public.require_admin();
-  update public.batches set deleted_at = now() where id = p_batch_id returning * into batch;
+  update public.batches set portions_remaining = 0 where id = p_batch_id returning * into batch;
   if not found then
     raise exception 'Batch not found';
   end if;
@@ -154,7 +122,12 @@ begin
 end;
 $$;
 
-create or replace function public.hard_delete_serving_event(p_event_id uuid)
+-- Deletes a serving event in one step: reinstates the batch's portions (if
+-- any were used), then marks the row deleted_at. Open to any user — see the
+-- "delete/delete permanently" UX discussion; nothing here is more
+-- destructive than void_batch already was (deleted_at, never an actual
+-- purge).
+create or replace function public.delete_serving_event(p_event_id uuid)
 returns public.serving_events
 language plpgsql
 security definer
@@ -163,11 +136,25 @@ as $$
 declare
   event public.serving_events;
 begin
-  perform public.require_admin();
-  update public.serving_events set deleted_at = now() where id = p_event_id returning * into event;
+  select * into event from public.serving_events where id = p_event_id;
   if not found then
     raise exception 'Serving event not found';
   end if;
+  if event.deleted_at is not null then
+    return event;
+  end if;
+
+  if event.batch_id is not null then
+    update public.batches
+      set portions_remaining = portions_remaining + event.portions_used
+      where id = event.batch_id;
+  end if;
+
+  update public.serving_events
+    set deleted_at = now()
+    where id = p_event_id
+    returning * into event;
+
   return event;
 end;
 $$;
