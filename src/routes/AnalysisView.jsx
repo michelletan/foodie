@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  getCurrentUser,
-  getSettings,
-  listBatches,
-  listRecipes,
-  listServingEvents,
-  updateSettings,
-} from '../lib/data/index.js'
+import { getSettings, listBatches, listRecipes, listServingEvents } from '../lib/data/index.js'
 import { proteinInfo } from '../lib/proteins.js'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'milk']
@@ -18,21 +11,14 @@ function capitalize(s) {
 
 // Read-only rollup over recipes/batches/servings, visible to everyone —
 // everything here is derived client-side from the same list*() calls other
-// pages use, no new backend endpoints. The low-stock-threshold setting at
-// the bottom stays admin-only (updateSettings() is still admin-gated
-// server-side, in both localBackend.js and the Postgres function), so only
-// that section checks role.
+// pages use, no new backend endpoints. The low-stock-threshold setting
+// itself now lives on its own admin-only page (/settings, via the username
+// dropdown) — this just reads the current value to compute the alert list.
 export default function AnalysisView() {
-  const [isAdmin, setIsAdmin] = useState(false)
   const [stats, setStats] = useState(null)
-  const [threshold, setThreshold] = useState('')
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
   async function refresh() {
-    const currentUser = await getCurrentUser()
-    setIsAdmin(currentUser.role === 'admin')
-
     const [recipes, batches, events, settings] = await Promise.all([
       listRecipes(),
       listBatches(),
@@ -93,28 +79,11 @@ export default function AnalysisView() {
       expiredCount,
       expiringSoonCount,
     })
-    setThreshold(String(settings.low_stock_threshold))
   }
 
   useEffect(() => {
     refresh().catch((e) => setError(e.message))
   }, [])
-
-  async function handleSaveThreshold(e) {
-    e.preventDefault()
-    setError(null)
-    const value = Number(threshold)
-    if (!Number.isInteger(value) || value < 0) return setError('Enter a valid whole number.')
-    setSaving(true)
-    try {
-      await updateSettings({ low_stock_threshold: value })
-      await refresh()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   if (error) return <p className="error">{error}</p>
   if (!stats) return <p>Loading…</p>
@@ -200,27 +169,6 @@ export default function AnalysisView() {
             </li>
           ))}
         </ul>
-      )}
-
-      {isAdmin && (
-        <>
-          <h3>Settings</h3>
-          <form onSubmit={handleSaveThreshold} className="field">
-            <label htmlFor="threshold">Low stock threshold (portions)</label>
-            <input
-              id="threshold"
-              type="number"
-              inputMode="numeric"
-              min="0"
-              step="1"
-              value={threshold}
-              onChange={(e) => setThreshold(e.target.value)}
-            />
-            <button type="submit" className="button" disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-          </form>
-        </>
       )}
     </div>
   )

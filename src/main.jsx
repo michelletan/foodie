@@ -14,6 +14,7 @@ import RecipeDetail from './routes/RecipeDetail.jsx'
 import RecipeForm from './routes/RecipeForm.jsx'
 import RecipeList from './routes/RecipeList.jsx'
 import ServeForm from './routes/ServeForm.jsx'
+import SettingsView from './routes/SettingsView.jsx'
 import UsedBatchesView from './routes/UsedBatchesView.jsx'
 
 // HashRouter avoids needing a GitHub Pages SPA-fallback trick for a static
@@ -36,6 +37,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="history" element={<HistoryView />} />
             <Route path="meals/:eventId" element={<MealDetail />} />
             <Route path="analysis" element={<AnalysisView />} />
+            <Route path="settings" element={<SettingsView />} />
           </Route>
         </Routes>
       </AuthGate>

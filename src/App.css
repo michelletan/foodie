@@ -122,7 +122,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.user-menu-dropdown button {
+.user-menu-dropdown button,
+.user-menu-dropdown a {
   display: block;
   width: 100%;
   text-align: left;
@@ -132,9 +133,12 @@
   padding: 8px 10px;
   border-radius: 6px;
   cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
-.user-menu-dropdown button:hover {
+.user-menu-dropdown button:hover,
+.user-menu-dropdown a:hover {
   background: var(--bg-subtle);
 }
 
@@ -247,6 +251,18 @@
 .button-group {
   display: flex;
   gap: 8px;
+}
+
+.recipe-detail .page-header {
+  display: block;
+}
+
+.recipe-detail .page-header h2 {
+  margin: 0 0 12px;
+}
+
+.recipe-detail .page-header .button-group {
+  justify-content: flex-end;
 }
 
 .recipe-detail dl,
