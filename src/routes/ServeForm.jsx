@@ -356,7 +356,7 @@ export default function ServeForm() {
 
         {error && <p className="error">{error}</p>}
 
-        <div className="form-actions serve-save-bar">
+        <div className="form-actions sticky-save-bar">
           <button type="submit" className="button" disabled={saving || compressing || !mealType}>
             {saving ? 'Saving…' : 'Save'}
           </button>

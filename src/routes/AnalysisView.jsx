@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getSettings, listBatches, listRecipes, listServingEvents } from '../lib/data/index.js'
-import { proteinInfo } from '../lib/proteins.js'
+import { categoryInfo } from '../lib/mealCategories.js'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'milk']
 
@@ -50,7 +50,7 @@ export default function AnalysisView() {
     const avgRating = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null
 
     const servingsByRecipe = new Map()
-    const servingsByProtein = new Map()
+    const servingsByCategory = new Map()
     const servingsByMealType = new Map()
     for (const e of events) {
       servingsByMealType.set(e.meal_type, (servingsByMealType.get(e.meal_type) ?? 0) + 1)
@@ -63,8 +63,8 @@ export default function AnalysisView() {
       entry.count += 1
       servingsByRecipe.set(recipe.id, entry)
 
-      const proteinKey = recipe.protein ?? 'unspecified'
-      servingsByProtein.set(proteinKey, (servingsByProtein.get(proteinKey) ?? 0) + 1)
+      const categoryKey = recipe.category ?? 'unspecified'
+      servingsByCategory.set(categoryKey, (servingsByCategory.get(categoryKey) ?? 0) + 1)
     }
 
     setStats({
@@ -73,7 +73,7 @@ export default function AnalysisView() {
       servingCount: events.length,
       avgRating,
       topRecipes: [...servingsByRecipe.values()].sort((a, b) => b.count - a.count).slice(0, 5),
-      servingsByProtein: [...servingsByProtein.entries()].sort((a, b) => b[1] - a[1]),
+      servingsByCategory: [...servingsByCategory.entries()].sort((a, b) => b[1] - a[1]),
       servingsByMealType: MEAL_TYPES.map((m) => [m, servingsByMealType.get(m) ?? 0]),
       lowStock,
       expiredCount,
@@ -111,6 +111,22 @@ export default function AnalysisView() {
         </div>
       </div>
 
+      <h3>Freezer alerts</h3>
+      <p className="hint">
+        {stats.expiredCount} expired · {stats.expiringSoonCount} expiring within 7 days
+      </p>
+      {stats.lowStock.length === 0 && <p className="empty-state">Nothing running low.</p>}
+      {stats.lowStock.length > 0 && (
+        <ul className="analysis-list">
+          {stats.lowStock.map((batch) => (
+            <li key={batch.id}>
+              <Link to={`/batches/${batch.id}`}>{batch.recipe?.title ?? 'Unknown recipe'}</Link>
+              <span>{batch.portions_remaining} left</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <h3>Top recipes</h3>
       {stats.topRecipes.length === 0 && <p className="empty-state">No servings logged yet.</p>}
       {stats.topRecipes.length > 0 && (
@@ -118,7 +134,7 @@ export default function AnalysisView() {
           {stats.topRecipes.map(({ recipe, count }) => (
             <li key={recipe.id}>
               <Link to={`/recipes/${recipe.id}`}>
-                {proteinInfo(recipe.protein) && <span aria-hidden="true">{proteinInfo(recipe.protein).icon} </span>}
+                {categoryInfo(recipe.category) && <span aria-hidden="true">{categoryInfo(recipe.category).icon} </span>}
                 {recipe.title}
               </Link>
               <span>
@@ -129,12 +145,12 @@ export default function AnalysisView() {
         </ul>
       )}
 
-      <h3>Protein variety</h3>
-      {stats.servingsByProtein.length === 0 && <p className="empty-state">Not enough data yet.</p>}
-      {stats.servingsByProtein.length > 0 && (
+      <h3>Category variety</h3>
+      {stats.servingsByCategory.length === 0 && <p className="empty-state">Not enough data yet.</p>}
+      {stats.servingsByCategory.length > 0 && (
         <ul className="analysis-list">
-          {stats.servingsByProtein.map(([key, count]) => {
-            const info = proteinInfo(key)
+          {stats.servingsByCategory.map(([key, count]) => {
+            const info = categoryInfo(key)
             return (
               <li key={key}>
                 <span>{info ? `${info.icon} ${info.label}` : 'Unspecified'}</span>
@@ -154,22 +170,6 @@ export default function AnalysisView() {
           </li>
         ))}
       </ul>
-
-      <h3>Freezer alerts</h3>
-      <p className="hint">
-        {stats.expiredCount} expired · {stats.expiringSoonCount} expiring within 7 days
-      </p>
-      {stats.lowStock.length === 0 && <p className="empty-state">Nothing running low.</p>}
-      {stats.lowStock.length > 0 && (
-        <ul className="analysis-list">
-          {stats.lowStock.map((batch) => (
-            <li key={batch.id}>
-              <Link to={`/batches/${batch.id}`}>{batch.recipe?.title ?? 'Unknown recipe'}</Link>
-              <span>{batch.portions_remaining} left</span>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   )
 }

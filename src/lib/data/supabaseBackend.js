@@ -70,7 +70,7 @@ export async function getRecipe(recipeId) {
   return unwrap(await supabase.from('recipes').select('*').eq('id', recipeId).single())
 }
 
-export async function createRecipe({ title, format, ingredients, instructions, notes, protein }) {
+export async function createRecipe({ title, format, ingredients, instructions, notes, category }) {
   return unwrap(
     await supabase
       .from('recipes')
@@ -80,7 +80,7 @@ export async function createRecipe({ title, format, ingredients, instructions, n
         ingredients,
         instructions,
         notes: notes ?? null,
-        protein: protein ?? null,
+        category: category ?? null,
       })
       .select()
       .single()

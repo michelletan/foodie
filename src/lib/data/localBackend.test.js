@@ -100,26 +100,26 @@ describe('recipes', () => {
     await expect(getRecipe('missing')).rejects.toThrow(/not found/i)
   })
 
-  it('defaults protein to null, but stores and updates it when given', async () => {
-    const withoutProtein = await createRecipe({
+  it('defaults category to null, but stores and updates it when given', async () => {
+    const withoutCategory = await createRecipe({
       title: 'Mystery bowl',
       ingredients: [{ name: 'x', quantity: '1', unit: '' }],
       instructions: 'do it',
       notes: null,
     })
-    expect(withoutProtein.protein).toBeNull()
+    expect(withoutCategory.category).toBeNull()
 
-    const withProtein = await createRecipe({
+    const withCategory = await createRecipe({
       title: 'Chicken soup',
       ingredients: [{ name: 'chicken', quantity: '1', unit: '' }],
       instructions: 'do it',
       notes: null,
-      protein: 'chicken',
+      category: 'chicken',
     })
-    expect(withProtein.protein).toBe('chicken')
+    expect(withCategory.category).toBe('chicken')
 
-    const updated = await updateRecipe(withProtein.id, { protein: 'beef' })
-    expect(updated.protein).toBe('beef')
+    const updated = await updateRecipe(withCategory.id, { category: 'beef' })
+    expect(updated.category).toBe('beef')
   })
 })
 

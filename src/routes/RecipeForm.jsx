@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createRecipe, getRecipe, updateRecipe } from '../lib/data/index.js'
-import { PROTEINS } from '../lib/proteins.js'
+import { MEAL_CATEGORIES } from '../lib/mealCategories.js'
+
+// Keeps the Category field to one row: the 3 most likely picks stay as quick
+// pills, everything else lives behind the dropdown — same pattern as
+// HistoryView's period picker (one fixed pill + a "More…" select).
+const QUICK_CATEGORY_VALUES = ['chicken', 'beef', 'vegetarian']
+const QUICK_CATEGORIES = MEAL_CATEGORIES.filter((c) => QUICK_CATEGORY_VALUES.includes(c.value))
+const MORE_CATEGORIES = MEAL_CATEGORIES.filter((c) => !QUICK_CATEGORY_VALUES.includes(c.value))
 
 // Structured (name/qty/unit rows) recipes still exist from before this was
 // simplified — RecipeDetail.jsx still renders them correctly — but this
@@ -22,7 +29,7 @@ export default function RecipeForm() {
   const navigate = useNavigate()
 
   const [title, setTitle] = useState('')
-  const [protein, setProtein] = useState('')
+  const [category, setCategory] = useState('')
   const [rawText, setRawText] = useState('')
   const [loading, setLoading] = useState(isEditing)
   const [saving, setSaving] = useState(false)
@@ -33,7 +40,7 @@ export default function RecipeForm() {
     getRecipe(id)
       .then((recipe) => {
         setTitle(recipe.title)
-        setProtein(recipe.protein ?? '')
+        setCategory(recipe.category ?? '')
         setRawText(flattenToText(recipe))
       })
       .catch((e) => setError(e.message))
@@ -53,7 +60,7 @@ export default function RecipeForm() {
       ingredients: [],
       instructions: rawText.trim(),
       notes: null,
-      protein: protein || null,
+      category: category || null,
     }
 
     setSaving(true)
@@ -81,18 +88,30 @@ export default function RecipeForm() {
         </div>
 
         <div className="field">
-          <label>Protein</label>
-          <div className="quick-options">
-            {PROTEINS.map((p) => (
+          <label>Category</label>
+          <div className="quick-options no-wrap">
+            {QUICK_CATEGORIES.map((c) => (
               <button
-                key={p.value}
+                key={c.value}
                 type="button"
-                className={`quick-option${protein === p.value ? ' selected' : ''}`}
-                onClick={() => setProtein(protein === p.value ? '' : p.value)}
+                className={`quick-option${category === c.value ? ' selected' : ''}`}
+                onClick={() => setCategory(category === c.value ? '' : c.value)}
               >
-                {p.icon} {p.label}
+                {c.icon} {c.label}
               </button>
             ))}
+            <select
+              className={`quick-option${category && !QUICK_CATEGORY_VALUES.includes(category) ? ' selected' : ''}`}
+              value={MORE_CATEGORIES.some((c) => c.value === category) ? category : ''}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">More…</option>
+              {MORE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.icon} {c.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -111,7 +130,7 @@ export default function RecipeForm() {
 
         {error && <p className="error">{error}</p>}
 
-        <div className="form-actions">
+        <div className="form-actions sticky-save-bar">
           <button type="submit" className="button" disabled={saving}>
             {saving ? 'Saving…' : 'Save recipe'}
           </button>

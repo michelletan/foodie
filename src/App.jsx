@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import logo from './assets/logo.svg'
 import BottomNav from './components/BottomNav.jsx'
+import LowStockCallout from './components/LowStockCallout.jsx'
 import UserMenu from './components/UserMenu.jsx'
 import UserSwitcher from './components/UserSwitcher.jsx'
 import './App.css'
@@ -13,6 +14,7 @@ function App() {
           <img src={logo} alt="" width="28" height="28" />
           foodie
         </h1>
+        <LowStockCallout />
         <UserSwitcher />
         <UserMenu />
       </header>

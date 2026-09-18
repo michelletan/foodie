@@ -21,10 +21,14 @@ create table public.recipes (
   ingredients jsonb not null default '[]'::jsonb,
   instructions text not null,
   notes text,
-  -- Tags the recipe's main protein so the recipe list can show an icon for
-  -- quick visual scanning (see src/lib/proteins.js for the values this must
-  -- match).
-  protein text check (protein in ('beef', 'chicken', 'pork', 'fish', 'egg', 'vegetarian', 'other')),
+  -- Tags the recipe's meal category so the recipe list can show an icon for
+  -- quick visual scanning, and so the low-stock alert can exclude sides
+  -- (soup, carbs) from the total-portions count (see
+  -- src/lib/mealCategories.js for the values and the countsTowardStock flag
+  -- this must match).
+  category text check (
+    category in ('beef', 'chicken', 'pork', 'fish', 'egg', 'vegetarian', 'soup', 'carbs', 'other')
+  ),
   created_by uuid not null references public.users (id) default auth.uid(),
   created_at timestamptz not null default now()
 );

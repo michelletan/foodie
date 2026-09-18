@@ -15,6 +15,20 @@ export default function UserMenu() {
       .catch(() => {})
   }, [])
 
+  // <details> only closes natively when its own <summary> is clicked again
+  // — it stays open if you click anywhere else in the app. Close it on any
+  // outside click too.
+  useEffect(() => {
+    if (!signOut) return
+    function handleOutsideClick(e) {
+      if (detailsRef.current && !detailsRef.current.contains(e.target)) {
+        detailsRef.current.open = false
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
+
   if (!signOut) return null
 
   function closeMenu() {

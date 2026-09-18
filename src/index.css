@@ -13,6 +13,7 @@
   --complementary: #1c7ed6;
   --complementary-bg: rgba(28, 126, 214, 0.1);
   --danger: #c53030;
+  --danger-bg: rgba(197, 48, 48, 0.1);
 
   --sans: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Outfit', system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -37,6 +38,7 @@
     --complementary: #74c0fc;
     --complementary-bg: rgba(116, 192, 252, 0.15);
     --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.15);
   }
 }
 

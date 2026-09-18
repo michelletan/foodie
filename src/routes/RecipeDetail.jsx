@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getRecipe, listUsers } from '../lib/data/index.js'
-import { proteinInfo } from '../lib/proteins.js'
+import { categoryInfo } from '../lib/mealCategories.js'
 
 export default function RecipeDetail() {
   const { id } = useParams()
@@ -23,7 +23,7 @@ export default function RecipeDetail() {
   if (error) return <p className="error">{error}</p>
   if (!recipe) return <p>Loading…</p>
 
-  const protein = proteinInfo(recipe.protein)
+  const category = categoryInfo(recipe.category)
 
   return (
     <div className="recipe-detail">
@@ -33,7 +33,7 @@ export default function RecipeDetail() {
 
       <div className="page-header">
         <h2>
-          {protein && <span aria-hidden="true">{protein.icon} </span>}
+          {category && <span aria-hidden="true">{category.icon} </span>}
           {recipe.title}
         </h2>
         <div className="button-group">
@@ -47,11 +47,11 @@ export default function RecipeDetail() {
       </div>
 
       <dl>
-        {protein && (
+        {category && (
           <>
-            <dt>Protein</dt>
+            <dt>Category</dt>
             <dd>
-              {protein.icon} {protein.label}
+              {category.icon} {category.label}
             </dd>
           </>
         )}

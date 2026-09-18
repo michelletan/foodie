@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listRecipes } from '../lib/data/index.js'
-import { proteinInfo } from '../lib/proteins.js'
+import { categoryInfo } from '../lib/mealCategories.js'
 
 const PAGE_SIZE = 20
 
@@ -56,7 +56,7 @@ export default function RecipeList() {
             {visible.map((r) => (
               <li key={r.id}>
                 <Link to={`/recipes/${r.id}`}>
-                  {proteinInfo(r.protein) && <span aria-hidden="true">{proteinInfo(r.protein).icon} </span>}
+                  {categoryInfo(r.category) && <span aria-hidden="true">{categoryInfo(r.category).icon} </span>}
                   {r.title}
                 </Link>
               </li>
