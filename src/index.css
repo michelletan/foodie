@@ -51,10 +51,6 @@ body {
 #root {
   max-width: 640px;
   margin: 0 auto;
-  min-height: 100svh;
-  padding: 0 max(16px, env(safe-area-inset-right))
-    calc(72px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  padding-top: env(safe-area-inset-top);
 }
 
 h1,
@@ -141,9 +137,11 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100svh;
+  min-height: 100dvh;
   gap: 24px;
   text-align: center;
+  padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right))
+    env(safe-area-inset-bottom) max(16px, env(safe-area-inset-left));
 }
 
 .login-screen form {

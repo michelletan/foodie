@@ -323,10 +323,24 @@ describe('serving a meal (atomic portion math)', () => {
     expect(await listServingEvents()).toContainEqual(event)
   })
 
-  it('refuses a non-milk serving with neither a batch nor a description', async () => {
+  it('refuses a non-milk serving with no batch, description, or photo', async () => {
     await expect(serveMeal({ mealType: 'lunch', satisfactionRating: 3 })).rejects.toThrow(
-      /select from the freezer or describe/i
+      /select from the freezer, describe/i
     )
+  })
+
+  it('logs a serving with only a photo, no batch or description', async () => {
+    const photoBlob = new Blob(['fake jpeg bytes'], { type: 'image/jpeg' })
+    const event = await serveMeal({ mealType: 'snack', photoBlob, satisfactionRating: 5 })
+    expect(event.batch_id).toBeNull()
+    expect(event.description).toBeNull()
+    expect(event.photo_path).not.toBeNull()
+  })
+
+  it('logs a serving with no satisfaction rating', async () => {
+    const batch = await makeBatch()
+    const event = await serveMeal({ batchId: batch.id, portionsUsed: 1, mealType: 'lunch' })
+    expect(event.satisfaction_rating).toBeNull()
   })
 })
 

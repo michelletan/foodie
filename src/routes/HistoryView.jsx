@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getPhotoUrl, listBatches, listChildren, listRecipes, listServingEvents, listUsers } from '../lib/data/index.js'
 import { satisfactionFace, satisfactionLabel } from '../lib/satisfaction.js'
 
@@ -190,7 +191,7 @@ export default function HistoryView() {
       {groups && groups.length > 0 && (
         <ul className="history-list">
           {groups.map((group) => {
-            const batchNames = group.items.filter((i) => i.event.batch_id).map((i) => i.title)
+            const batchItems = group.items.filter((i) => i.event.batch_id)
             const freeText = [
               ...group.items.filter((i) => !i.event.batch_id && i.event.description).map((i) => i.event.description),
               group.notes,
@@ -206,7 +207,16 @@ export default function HistoryView() {
                     {group.servedByName} at {formatTime(group.servedAt)} ·{' '}
                     <span title={satisfactionLabel(group.rating)}>{satisfactionFace(group.rating)}</span>
                   </div>
-                  {batchNames.length > 0 && <div className="history-notes">{batchNames.join(', ')}</div>}
+                  {batchItems.length > 0 && (
+                    <div className="history-notes">
+                      {batchItems.map((item, i) => (
+                        <span key={item.event.batch_id}>
+                          <Link to={`/batches/${item.event.batch_id}`}>{item.title}</Link>
+                          {i < batchItems.length - 1 ? ', ' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {freeText.map((text, i) => (
                     <div key={i} className="history-notes">
                       {text}

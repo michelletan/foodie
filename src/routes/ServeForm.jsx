@@ -78,7 +78,7 @@ export default function ServeForm() {
   // longest wait, ranked by how long ago they were prepared).
   const suggestion = useMemo(() => {
     if (availableBatches.length < 2) return null
-    return [...availableBatches].sort((a, b) => {
+    const top = [...availableBatches].sort((a, b) => {
       const aDays = daysSinceServedByBatch.get(a.id)
       const bDays = daysSinceServedByBatch.get(b.id)
       if (aDays === undefined && bDays === undefined) return a.prepared_at < b.prepared_at ? -1 : 1
@@ -86,6 +86,10 @@ export default function ServeForm() {
       if (bDays === undefined) return 1
       return bDays - aDays
     })[0]
+    // Already served today — "hasn't been served in 0 days" isn't a useful
+    // rotation nudge, so skip the callout entirely rather than show it.
+    if (daysSinceServedByBatch.get(top.id) === 0) return null
+    return top
   }, [availableBatches, daysSinceServedByBatch])
 
   function recipeTitle(recipeId) {
@@ -152,20 +156,20 @@ export default function ServeForm() {
 
     if (!mealType) return setError('Tap a meal.')
 
-    // Each freezer item becomes its own serving_event row; a filled-in
-    // description becomes one more (batch-less) row. Milk with nothing
-    // selected is still exactly one row, just with no batch or description.
+    // Each freezer item becomes its own serving_event row; a description
+    // and/or photo with no batch becomes one more row (a photo alone is
+    // enough to count as "what was served" — no description required).
+    // Milk with nothing selected is still exactly one row, just with no
+    // batch, description, or photo.
     const items = freezerItems.map((i) => ({ batchId: i.batchId, portionsUsed: i.portionsUsed }))
-    if (description.trim()) items.push({ batchId: null, portionsUsed: null })
+    if (description.trim() || photoBlob) items.push({ batchId: null, portionsUsed: null })
     if (items.length === 0) {
       if (mealType === 'milk') {
         items.push({ batchId: null, portionsUsed: null })
       } else {
-        return setError('Select from the freezer or describe what was served.')
+        return setError('Select from the freezer, describe what was served, or add a photo.')
       }
     }
-    if (!rating) return setError('Tap a rating.')
-
     setSaving(true)
     let savedCount = 0
     try {
@@ -323,7 +327,7 @@ export default function ServeForm() {
         {mealType && (
           <>
             <div className="field">
-              <label>Satisfaction</label>
+              <label>Satisfaction (optional)</label>
               <div className="rating-options">
                 {SATISFACTION_RATINGS.map((n) => (
                   <button

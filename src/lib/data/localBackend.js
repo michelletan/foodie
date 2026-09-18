@@ -237,8 +237,8 @@ export async function serveMeal({
   const db = loadDb()
   const user = await getCurrentUser()
 
-  if (mealType !== 'milk' && !batchId && !description) {
-    throw new Error('Select from the freezer or describe what was served.')
+  if (mealType !== 'milk' && !batchId && !description && !photoBlob) {
+    throw new Error('Select from the freezer, describe what was served, or add a photo.')
   }
 
   let batch = null
@@ -266,7 +266,7 @@ export async function serveMeal({
     meal_type: mealType,
     description: description ?? null,
     photo_path: photoPath,
-    satisfaction_rating: satisfactionRating,
+    satisfaction_rating: satisfactionRating ?? null,
     notes: notes ?? null,
     served_at: now(),
     voided_at: null,

@@ -188,7 +188,7 @@ export async function serveMeal({
       p_meal_type: mealType,
       p_description: description ?? null,
       p_photo_path: photoPath,
-      p_satisfaction_rating: satisfactionRating,
+      p_satisfaction_rating: satisfactionRating ?? null,
       p_notes: notes ?? null,
     })
   )

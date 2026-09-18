@@ -7,7 +7,7 @@ import './App.css'
 
 function App() {
   return (
-    <>
+    <div className="app-shell">
       <header className="app-header">
         <h1>
           <img src={logo} alt="" width="28" height="28" />
@@ -16,11 +16,11 @@ function App() {
         <UserSwitcher />
         <UserMenu />
       </header>
-      <main>
+      <main className="app-main">
         <Outlet />
       </main>
       <BottomNav />
-    </>
+    </div>
   )
 }
 
