@@ -3,13 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { createRecipe, getRecipe, updateRecipe } from '../lib/data/index.js'
 import { MEAL_CATEGORIES } from '../lib/mealCategories.js'
 
-// Keeps the Category field to one row: the 3 most likely picks stay as quick
-// pills, everything else lives behind the dropdown — same pattern as
-// HistoryView's period picker (one fixed pill + a "More…" select).
-const QUICK_CATEGORY_VALUES = ['chicken', 'beef', 'vegetarian']
-const QUICK_CATEGORIES = MEAL_CATEGORIES.filter((c) => QUICK_CATEGORY_VALUES.includes(c.value))
-const MORE_CATEGORIES = MEAL_CATEGORIES.filter((c) => !QUICK_CATEGORY_VALUES.includes(c.value))
-
 // Structured (name/qty/unit rows) recipes still exist from before this was
 // simplified — RecipeDetail.jsx still renders them correctly — but this
 // form no longer creates them. Editing an old structured recipe flattens it
@@ -88,31 +81,15 @@ export default function RecipeForm() {
         </div>
 
         <div className="field">
-          <label>Category</label>
-          <div className="quick-options no-wrap">
-            {QUICK_CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                className={`quick-option${category === c.value ? ' selected' : ''}`}
-                onClick={() => setCategory(category === c.value ? '' : c.value)}
-              >
+          <label htmlFor="category">Category</label>
+          <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">No category</option>
+            {MEAL_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
                 {c.icon} {c.label}
-              </button>
+              </option>
             ))}
-            <select
-              className={`quick-option${category && !QUICK_CATEGORY_VALUES.includes(category) ? ' selected' : ''}`}
-              value={MORE_CATEGORIES.some((c) => c.value === category) ? category : ''}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">More…</option>
-              {MORE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.icon} {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          </select>
         </div>
 
         <div className="field">
